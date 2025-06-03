@@ -261,7 +261,6 @@ class VersesPresenter < BasePresenter
         approved_tafsirs = ResourceContent
                              .approved
                              .tafsirs
-                             .one_verse
                              .allowed_to_share
 
         params[:tafsirs] = approved_tafsirs
