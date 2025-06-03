@@ -28,6 +28,8 @@ class VerseFinder < Finder
     load_translations
     load_words(language_code)
     load_audio
+    load_tafsirs   # ← add this line
+
     translations_order = params[:translations].present? ? ',translations.priority ASC' : ''
 
     @results.order("verses.verse_index ASC, words.position ASC, word_translations.priority ASC #{translations_order}".strip)
@@ -83,6 +85,23 @@ class VerseFinder < Finder
                    .eager_load(:audio_file)
     end
   end
+
+  # Load tafsirs that span the current verse (single-ayah OR multi-ayah)
+  def load_tafsirs
+    return unless params[:tafsirs].present?
+
+    tafsir_ids = Array(params[:tafsirs]).map(&:to_i)
+
+    @results = @results
+                .joins(<<~SQL)
+                  LEFT JOIN tafsirs
+                    ON tafsirs.start_verse_id <= verses.id
+                    AND (tafsirs.end_verse_id IS NULL OR tafsirs.end_verse_id >= verses.id)
+                SQL
+                .where(tafsirs: { resource_content_id: tafsir_ids })
+                .eager_load(:tafsirs)
+  end
+
 
   def set_offset
     if offset.present?
