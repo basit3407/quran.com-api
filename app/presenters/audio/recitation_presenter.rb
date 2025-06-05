@@ -9,8 +9,8 @@ class Audio::RecitationPresenter < BasePresenter
 
   def recitations
     relation = Audio::Recitation
-                 .includes(:recitation_style, :qirat_type, reciter: :translated_name)
-                 .eager_load(reciter: :translated_name)
+                 .includes(:translated_name, :recitation_style, :qirat_type, reciter: :translated_name)
+                 .eager_load(:translated_name, reciter: :translated_name)
                  .order('priority ASC, language_priority DESC')
 
     eager_load_translated_name filter_recitations(relation)
