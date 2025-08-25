@@ -119,11 +119,11 @@ module Api::Qdc
     def country_language_preference
       user_device_language = request.query_parameters[:user_device_language]
       country = request.query_parameters[:country]&.upcase
-    
+
       if user_device_language.blank? || country.blank?
         return render_bad_request("#{user_device_language.blank? ? 'user_device_language' : 'country'} is required")
       end
-    
+
       unless Language.exists?(iso_code: user_device_language)
         return render_bad_request('Invalid user_device_language')
       end
@@ -132,13 +132,20 @@ module Api::Qdc
       unless valid_countries.include?(country)
         return render_bad_request('Invalid country code')
       end
-    
+
+      # First try to find country-specific preference
       preferences = CountryLanguagePreference.with_includes
                       .where(user_device_language: user_device_language, country: country)
-      @preference = preferences.first || CountryLanguagePreference.with_includes
-                                      .find_by(user_device_language: user_device_language, country: nil)
-    
+      @preference = preferences.first
+
+      # If no country-specific preference found, try global preference
+      unless @preference
+        @preference = CountryLanguagePreference.with_includes
+                        .find_by(user_device_language: user_device_language, country: nil)
+      end
+
       if @preference
+        # Filter out unapproved resources when building the response
         @data = build_preference_data(@preference)
         render
       else
@@ -151,9 +158,11 @@ module Api::Qdc
     def build_preference_data(preference)
       {
         preference: preference,
-        default_mushaf: preference.mushaf,
-        default_translations: preference.default_translation_ids.present? ? ResourceContent.where(id: preference.default_translation_ids.split(',')).approved : [],
-        default_tafsir: preference.tafsir,
+        default_mushaf: preference.mushaf&.enabled ? preference.mushaf : nil,
+        default_translations: preference.default_translation_ids.present? ?
+          ResourceContent.where(id: preference.default_translation_ids.split(','))
+                        .approved : [],
+        default_tafsir: preference.tafsir&.approved? ? preference.tafsir : nil,
         default_wbw_language: preference.wbw_language,
         default_reciter: preference.reciter,
         ayah_reflections_languages: Language.where(iso_code: preference.ayah_reflections_languages&.split(',') || []),
