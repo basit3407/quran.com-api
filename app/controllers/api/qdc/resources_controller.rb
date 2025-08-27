@@ -117,31 +117,48 @@ module Api::Qdc
     end
 
     def country_language_preference
-      user_device_language = request.query_parameters[:user_device_language]
-      country = request.query_parameters[:country]&.upcase
+      user_device_language = request.query_parameters[:user_device_language].presence
+      country = request.query_parameters[:country].presence&.upcase
 
-      if user_device_language.blank? || country.blank?
-        return render_bad_request("#{user_device_language.blank? ? 'user_device_language' : 'country'} is required")
+      # Require a valid user_device_language always
+      if user_device_language.blank?
+        return render_bad_request('user_device_language is required')
       end
 
       unless Language.exists?(iso_code: user_device_language)
         return render_bad_request('Invalid user_device_language')
       end
 
-      valid_countries = ISO3166::Country.all.map(&:alpha2)
-      unless valid_countries.include?(country)
-        return render_bad_request('Invalid country code')
+      # Validate country only if provided
+      if country.present?
+        valid_countries = ISO3166::Country.all.map(&:alpha2)
+        unless valid_countries.include?(country)
+          return render_bad_request('Invalid country code')
+        end
       end
 
-      # First try to find country-specific preference
-      preferences = CountryLanguagePreference.with_includes
-                      .where(user_device_language: user_device_language, country: country)
-      @preference = preferences.first
+      if country.present?
+        # First try to find country-specific preference
+        preferences = CountryLanguagePreference.with_includes
+                        .where(user_device_language: user_device_language, country: country)
+        @preference = preferences.first
 
-      # If no country-specific preference found, try global preference
-      unless @preference
+        # If no country-specific preference found, try global preference
+        unless @preference
+          @preference = CountryLanguagePreference.with_includes
+                          .find_by(user_device_language: user_device_language, country: nil)
+        end
+      else
+        # No country provided: search by user_device_language only
+        # Prefer global (country: nil), then fall back to any match for that language
         @preference = CountryLanguagePreference.with_includes
-                        .find_by(user_device_language: user_device_language, country: nil)
+                          .find_by(user_device_language: user_device_language, country: nil)
+
+        unless @preference
+          @preference = CountryLanguagePreference.with_includes
+                            .where(user_device_language: user_device_language)
+                            .first
+        end
       end
 
       if @preference
