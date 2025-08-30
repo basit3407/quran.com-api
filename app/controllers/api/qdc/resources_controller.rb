@@ -173,12 +173,22 @@ module Api::Qdc
     private
 
     def build_preference_data(preference)
+      # Sanitize CSV IDs for default translations
+      ids = if preference.default_translation_ids.present?
+              preference.default_translation_ids
+                .split(',')
+                .map(&:strip)
+                .reject(&:blank?)
+                .map(&:to_i)
+            else
+              []
+            end
+
       {
         preference: preference,
         default_mushaf: preference.mushaf&.enabled ? preference.mushaf : nil,
-        default_translations: preference.default_translation_ids.present? ?
-          ResourceContent.where(id: preference.default_translation_ids.split(','))
-                        .approved : [],
+        default_translations: ids.any? ?
+          ResourceContent.where(id: ids).approved.includes(:translated_name) : [],
         default_tafsir: preference.tafsir&.approved? ? preference.tafsir : nil,
         default_wbw_language: preference.wbw_language,
         default_reciter: preference.reciter,
