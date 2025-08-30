@@ -34,9 +34,7 @@ class CountryLanguagePreference < ApplicationRecord
 
   validates :user_device_language, presence: true
 
-  scope :with_includes, -> { 
+  scope :with_includes, -> {
     includes(:reciter, :language, :wbw_language, :mushaf, :tafsir)
-    .where(mushafs: { enabled: true }, resource_contents: { approved: true })
   }
-
 end

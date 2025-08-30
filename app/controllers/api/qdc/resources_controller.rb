@@ -117,28 +117,52 @@ module Api::Qdc
     end
 
     def country_language_preference
-      user_device_language = request.query_parameters[:user_device_language]
-      country = request.query_parameters[:country]&.upcase
-    
-      if user_device_language.blank? || country.blank?
-        return render_bad_request("#{user_device_language.blank? ? 'user_device_language' : 'country'} is required")
+      user_device_language = request.query_parameters[:user_device_language].presence
+      country = request.query_parameters[:country].presence&.upcase
+
+      # Require a valid user_device_language always
+      if user_device_language.blank?
+        return render_bad_request('user_device_language is required')
       end
-    
+
       unless Language.exists?(iso_code: user_device_language)
         return render_bad_request('Invalid user_device_language')
       end
 
-      valid_countries = ISO3166::Country.all.map(&:alpha2)
-      unless valid_countries.include?(country)
-        return render_bad_request('Invalid country code')
+      # Validate country only if provided
+      if country.present?
+        valid_countries = ISO3166::Country.all.map(&:alpha2)
+        unless valid_countries.include?(country)
+          return render_bad_request('Invalid country code')
+        end
       end
-    
-      preferences = CountryLanguagePreference.with_includes
-                      .where(user_device_language: user_device_language, country: country)
-      @preference = preferences.first || CountryLanguagePreference.with_includes
-                                      .find_by(user_device_language: user_device_language, country: nil)
-    
+
+      if country.present?
+        # First try to find country-specific preference
+        preferences = CountryLanguagePreference.with_includes
+                        .where(user_device_language: user_device_language, country: country)
+        @preference = preferences.first
+
+        # If no country-specific preference found, try global preference
+        unless @preference
+          @preference = CountryLanguagePreference.with_includes
+                          .find_by(user_device_language: user_device_language, country: nil)
+        end
+      else
+        # No country provided: search by user_device_language only
+        # Prefer global (country: nil), then fall back to any match for that language
+        @preference = CountryLanguagePreference.with_includes
+                          .find_by(user_device_language: user_device_language, country: nil)
+
+        unless @preference
+          @preference = CountryLanguagePreference.with_includes
+                            .where(user_device_language: user_device_language)
+                            .first
+        end
+      end
+
       if @preference
+        # Filter out unapproved resources when building the response
         @data = build_preference_data(@preference)
         render
       else
@@ -149,11 +173,23 @@ module Api::Qdc
     private
 
     def build_preference_data(preference)
+      # Sanitize CSV IDs for default translations
+      ids = if preference.default_translation_ids.present?
+              preference.default_translation_ids
+                .split(',')
+                .map(&:strip)
+                .reject(&:blank?)
+                .map(&:to_i)
+            else
+              []
+            end
+
       {
         preference: preference,
-        default_mushaf: preference.mushaf,
-        default_translations: preference.default_translation_ids.present? ? ResourceContent.where(id: preference.default_translation_ids.split(',')).approved : [],
-        default_tafsir: preference.tafsir,
+        default_mushaf: preference.mushaf&.enabled ? preference.mushaf : nil,
+        default_translations: ids.any? ?
+          ResourceContent.where(id: ids).approved.includes(:translated_name) : [],
+        default_tafsir: preference.tafsir&.approved? ? preference.tafsir : nil,
         default_wbw_language: preference.wbw_language,
         default_reciter: preference.reciter,
         ayah_reflections_languages: Language.where(iso_code: preference.ayah_reflections_languages&.split(',') || []),
