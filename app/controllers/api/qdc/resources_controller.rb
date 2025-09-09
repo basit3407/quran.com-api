@@ -184,15 +184,29 @@ module Api::Qdc
               []
             end
 
+      # QR specific default translations ids
+      qr_ids = if preference.qr_default_translations_ids.present?
+                 preference.qr_default_translations_ids
+                   .split(',')
+                   .map(&:strip)
+                   .reject(&:blank?)
+                   .map(&:to_i)
+               else
+                 []
+               end
+
       {
         preference: preference,
         default_mushaf: preference.mushaf&.enabled ? preference.mushaf : nil,
         default_translations: ids.any? ?
           ResourceContent.where(id: ids).approved.includes(:translated_name) : [],
+        qr_default_translations: qr_ids.any? ?
+          ResourceContent.where(id: qr_ids).approved.includes(:translated_name) : [],
         default_tafsir: preference.tafsir&.approved? ? preference.tafsir : nil,
         default_wbw_language: preference.wbw_language,
         default_reciter: preference.reciter,
         ayah_reflections_languages: Language.where(iso_code: preference.ayah_reflections_languages&.split(',') || []),
+        qr_reflection_languages: Language.where(iso_code: preference.qr_reflection_languages&.split(',') || []),
         learning_plan_languages: Language.where(iso_code: preference.learning_plan_languages&.split(',') || [])
       }
     end
