@@ -1,20 +1,22 @@
 # == Schema Information
-# Schema version: 20240918072240
+# Schema version: 20250909000000
 #
 # Table name: country_language_preferences
 #
-#  id                         :bigint           not null, primary key
-#  ayah_reflections_languages :string
-#  country                    :string
-#  default_reciter            :integer
-#  default_translation_ids    :string
-#  default_wbw_language       :string
-#  learning_plan_languages    :string
-#  user_device_language       :string           not null
-#  created_at                 :datetime         not null
-#  updated_at                 :datetime         not null
-#  default_mushaf_id          :integer
-#  default_tafsir_id          :integer
+#  id                          :bigint           not null, primary key
+#  ayah_reflections_languages  :string
+#  country                     :string
+#  default_reciter             :integer
+#  default_translation_ids     :string
+#  default_wbw_language        :string
+#  learning_plan_languages     :string
+#  qr_default_translations_ids :string
+#  qr_reflection_languages     :string
+#  user_device_language        :string           not null
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  default_mushaf_id           :integer
+#  default_tafsir_id           :integer
 #
 # Foreign Keys
 #

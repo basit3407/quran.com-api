@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_12_28_151537) do
+ActiveRecord::Schema[7.0].define(version: 2025_09_09_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -337,6 +337,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_12_28_151537) do
     t.string "learning_plan_languages"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "qr_default_translations_ids"
+    t.string "qr_reflection_languages"
   end
 
   create_table "data_sources", id: :serial, force: :cascade do |t|

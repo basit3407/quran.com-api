@@ -25,6 +25,20 @@ json.object! do
     end
   end
 
+  json.qr_default_translations do
+    json.array! @data[:qr_default_translations] do |translation|
+      json.object! do
+        json.extract! translation, :id, :name, :author_name, :slug, :language_name
+        json.translated_name do
+          translated_name = translation.translated_name
+          json.object! do
+            json.extract! translated_name, :name, :language_name
+          end
+        end
+      end
+    end
+  end
+
   if @data[:default_tafsir]
     json.default_tafsir do
       json.object! do
@@ -57,6 +71,14 @@ json.object! do
 
   json.ayah_reflections_languages do
     json.array! @data[:ayah_reflections_languages] do |language|
+      json.object! do
+        json.extract! language, :id, :name, :iso_code
+      end
+    end
+  end
+
+  json.qr_reflection_languages do
+    json.array! @data[:qr_reflection_languages] do |language|
       json.object! do
         json.extract! language, :id, :name, :iso_code
       end
