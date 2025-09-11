@@ -44,4 +44,12 @@ json.object! do
       json.extract! chapter.translated_name, :language_name, :name
     end
   end
+
+  if render_transliterated_name && chapter.transliteration
+    json.transliterated_name do
+      json.object! do
+        json.extract! chapter.transliteration, :language_name, :text
+      end
+    end
+  end
 end
