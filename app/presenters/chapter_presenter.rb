@@ -26,6 +26,10 @@ class ChapterPresenter < BasePresenter
     include_in_response? params[:translated_names]
   end
 
+  def include_transliterated_name?
+    include_in_response? params[:transliterated_name]
+  end
+
   def include_chapter_info?
     include_in_response? params[:info]
   end

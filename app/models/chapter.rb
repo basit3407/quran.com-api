@@ -29,6 +29,7 @@ class Chapter < ApplicationRecord
   include Slugable
   include QuranNavigationSearchable
   include NameTranslateable
+  include NameTransliterateable
 
   has_many :verses
   has_many :chapter_infos
