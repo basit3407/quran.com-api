@@ -28,6 +28,18 @@ class ChapterFinder < Finder
                    .or(with_default_names)
                end
 
+    # Eager load transliteration for chapter names with fallback to English (mirror translated_names pattern)
+    with_default_trans = chapters.where(transliterations: { language_id: Language.default.id })
+
+    chapters = if language.nil? || language.default?
+                 with_default_trans
+               else
+                 chapters
+                   .where(transliterations: { language_id: language.id })
+                   .or(with_default_trans)
+                   .order(Arel.sql("CASE WHEN transliterations.language_id = #{language.id} THEN 0 ELSE 1 END"))
+               end
+
     if !include_slugs
       # Fix slugs order and language
       chapters = load_language_slug(chapters, locale: locale)
@@ -52,7 +64,7 @@ class ChapterFinder < Finder
   protected
 
   def chapter_eager_loads(include_slugs)
-    eager_load = [:translated_name]
+    eager_load = [:translated_name, :transliteration]
 
     if include_slugs
       eager_load.push :slugs
@@ -62,4 +74,5 @@ class ChapterFinder < Finder
 
     eager_load
   end
+
 end

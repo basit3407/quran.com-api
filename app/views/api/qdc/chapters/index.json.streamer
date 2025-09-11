@@ -4,6 +4,7 @@ json.object! do
       json.partial! 'chapter', chapter: chapter,
                     render_slugs: @presenter.include_slugs?,
                     render_translated_names: @presenter.include_translated_names?,
+                    render_transliterated_name: @presenter.include_transliterated_name?,
                     render_info: false
     end
   end
