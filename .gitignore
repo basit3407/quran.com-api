@@ -36,3 +36,5 @@ public/sitemaps
 /config/credentials/production.key
 
 /config/credentials/development.key
+
+.env

@@ -12,6 +12,11 @@ Rails.application.routes.draw do
   post '/graphql', to: 'graphql#execute'
   post "/internal/sync_api_client", to: "api_clients#sync"
 
+  # Simple health check endpoint (non-cached)
+  get '/health', to: 'health#show'
+  # Readiness endpoint (returns 503 if dependencies down)
+  get '/ready', to: 'readiness#show'
+
   namespace :kalimat do
     get '/search', to: 'search#search'
     get '/suggest', to: 'search#suggest'
