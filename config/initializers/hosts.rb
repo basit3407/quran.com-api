@@ -5,6 +5,8 @@ Rails.application.config.hosts += [
   '.qurancdn.com',
   '.quran.foundation',
   '.staging.quran.foundation',
+  '.testing.quran.foundation',
+  '.pre-live.quran.foundation',
   '.ondigitalocean.app',
   '.quranreflect.com',
   '.quranreflect.org',
