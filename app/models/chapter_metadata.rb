@@ -28,10 +28,8 @@ class ChapterMetadata < ApplicationRecord
   belongs_to :chapter
   belongs_to :language
 
-  validates :chapter_id, presence: true
   validates :metadata_type, presence: true, inclusion: { in: %w[summary suggestion] }
   validates :content, presence: true
-  validates :language_id, presence: true
 
   scope :summaries, -> { where(metadata_type: 'summary') }
   scope :suggestions, -> { where(metadata_type: 'suggestion') }

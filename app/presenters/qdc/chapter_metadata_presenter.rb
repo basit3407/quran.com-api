@@ -13,9 +13,9 @@ module Qdc
 
     attr_reader :finder
 
-    def initialize(params, locale = nil)
+    def initialize(params)
       super(params)
-      @finder = Qdc::ChapterMetadataFinder.new(params.merge(language: locale || fetch_locale))
+      @finder = Qdc::ChapterMetadataFinder.new(params)
     end
   end
 end

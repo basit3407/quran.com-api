@@ -12,11 +12,11 @@ module Api::Qdc
     private
 
     def init_presenter
-      @presenter = Qdc::ChapterMetadataPresenter.new(permitted_params, fetch_locale)
+      @presenter = Qdc::ChapterMetadataPresenter.new(permitted_params)
     end
 
     def permitted_params
-      params.permit(:id, :language, :locale)
+      params.permit(:id, :language, :locale, :format)
     end
 
     def validate_chapter

@@ -5,9 +5,6 @@ require 'rails_helper'
 RSpec.describe 'QDC Chapter Metadata API', type: :request do
   let(:english) { Language.find_by(iso_code: 'en') }
   let(:arabic) { Language.find_by(iso_code: 'ar') }
-  let(:chapter_1) { Chapter.find_by(id: 1) }
-  let(:chapter_2) { Chapter.find_by(id: 2) }
-  let(:chapter_114) { Chapter.find_by(id: 114) }
 
   before(:each) do
     ChapterMetadata.delete_all
