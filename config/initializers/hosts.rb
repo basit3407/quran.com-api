@@ -12,7 +12,7 @@ Rails.application.config.hosts += [
   '.quranreflect.org',
   '.test.quranreflect.org',
   '.staging.quranreflect.org',
-  '.pre-live.quranreflect.org',
+  '.prelive.quranreflect.org',
 ]
 
 if Rails.env.development?
