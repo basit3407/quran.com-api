@@ -16,7 +16,7 @@ module Api::Qdc
     end
 
     def permitted_params
-      params.permit(:id, :language, :locale, :format)
+      params.permit(:id, :language, :locale)
     end
 
     def validate_chapter

@@ -15,12 +15,7 @@
 #
 # Indexes
 #
-#  index_chapter_metadata_on_chapter_id                      (chapter_id)
-#  index_chapter_metadata_on_chapter_id_and_metadata_type    (chapter_id,metadata_type)
-#  index_chapter_metadata_on_chapter_id_and_is_active        (chapter_id,is_active)
-#  index_chapter_metadata_on_language_id                     (language_id)
-#  index_chapter_metadata_on_chapter_type_active             (chapter_id,metadata_type,is_active)
-#  index_chapter_metadata_on_language_active                 (language_id,is_active)
+#  index_chapter_metadata_on_query_pattern                    (chapter_id,language_id,metadata_type,is_active)
 #
 #
 
