@@ -9,13 +9,13 @@ module Api::Qdc
       render
     end
 
-    protected
+    private
 
     def init_presenter
-      @presenter = Qdc::ChapterMetadataPresenter.new(chapter_metadata_params, fetch_locale)
+      @presenter = Qdc::ChapterMetadataPresenter.new(permitted_params, fetch_locale)
     end
 
-    def chapter_metadata_params
+    def permitted_params
       params.permit(:id, :language, :locale)
     end
 

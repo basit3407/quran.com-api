@@ -7,7 +7,6 @@ class CreateChapterMetadata < ActiveRecord::Migration[7.0]
       t.string :metadata_type, null: false
       t.text :content, null: false
       t.integer :language_id, null: false
-      t.string :language_name
       t.boolean :is_active, default: true
 
       t.timestamps

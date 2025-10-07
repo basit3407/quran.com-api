@@ -9,7 +9,6 @@
 #  metadata_type :string           not null
 #  content       :text             not null
 #  language_id   :integer          not null
-#  language_name :string
 #  is_active     :boolean          default(TRUE)
 #  created_at    :datetime         not null
 #  updated_at    :datetime         not null
@@ -29,7 +28,7 @@ class ChapterMetadata < ApplicationRecord
   belongs_to :chapter
   belongs_to :language
 
-  validates :chapter_id, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 114 }
+  validates :chapter_id, presence: true
   validates :metadata_type, presence: true, inclusion: { in: %w[summary suggestion] }
   validates :content, presence: true
   validates :language_id, presence: true
@@ -40,4 +39,6 @@ class ChapterMetadata < ApplicationRecord
   scope :filter_by_language, ->(language_id) { where(language_id: language_id) }
   scope :active, -> { where(is_active: true) }
   scope :ordered, -> { order(created_at: :asc) }
+
+  delegate :name, to: :language, prefix: true
 end
