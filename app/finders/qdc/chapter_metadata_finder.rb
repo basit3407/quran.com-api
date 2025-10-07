@@ -32,17 +32,22 @@ module Qdc
     end
 
     def next_chapter_summaries
-      next_chapter ? metadata_for_chapter(next_chapter.id, :summaries) : []
+      adjacent_summaries(1)
     end
 
     def previous_chapter_summaries
-      previous_chapter ? metadata_for_chapter(previous_chapter.id, :summaries) : []
+      adjacent_summaries(-1)
     end
 
     private
 
-    def metadata_for_chapter(chap_id, type)
-      metadata_cache[chap_id][type]
+    def adjacent_summaries(offset)
+      adj = find_adjacent_chapter(offset)
+      adj ? metadata_for_chapter(adj.id, :summaries) : []
+    end
+
+    def metadata_for_chapter(chapter_id, type)
+      metadata_cache[chapter_id][type]
     end
 
     def metadata_cache
@@ -50,18 +55,15 @@ module Qdc
     end
 
     def build_metadata_cache
-      grouped = initialize_grouped_hash
+      grouped = Hash.new { |h, k| h[k] = { suggestions: [], summaries: [] } }
 
-      fetch_all_metadata.group_by(&:chapter_id).each do |chap_id, items|
-        grouped[chap_id][:suggestions] = filter_by_type_and_language(items, 'suggestion')
-        grouped[chap_id][:summaries] = filter_by_type_and_language(items, 'summary')
+      fetch_all_metadata.group_by(&:chapter_id).each do |chapter_id, items|
+        suggestions, summaries = items.partition { |m| m.metadata_type == 'suggestion' }
+        grouped[chapter_id][:suggestions] = select_first_language_only(suggestions)
+        grouped[chapter_id][:summaries] = select_first_language_only(summaries)
       end
 
       grouped
-    end
-
-    def initialize_grouped_hash
-      Hash.new { |h, k| h[k] = { suggestions: [], summaries: [] } }
     end
 
     def fetch_all_metadata
@@ -72,14 +74,14 @@ module Qdc
     end
 
     def relevant_chapter_ids
-      ids = [chapter_id]
-      ids << chapter_id + 1 if chapter_id < MAX_CHAPTER_ID
-      ids << chapter_id - 1 if chapter_id > MIN_CHAPTER_ID
-      ids
+      [chapter_id,
+       (chapter_id + 1 if chapter_id < MAX_CHAPTER_ID),
+       (chapter_id - 1 if chapter_id > MIN_CHAPTER_ID)
+      ].compact
     end
 
     def prioritized_language_ids
-      [language_id, default_language_id].uniq
+      @prioritized_language_ids ||= [language_id, default_language_id].uniq
     end
 
     def language_priority_order
@@ -88,11 +90,6 @@ module Qdc
           ["CASE WHEN language_id = ? THEN 0 ELSE 1 END", language_id]
         )
       )
-    end
-
-    def filter_by_type_and_language(items, type)
-      items_of_type = items.select { |m| m.metadata_type == type }
-      select_first_language_only(items_of_type)
     end
 
     def select_first_language_only(items)

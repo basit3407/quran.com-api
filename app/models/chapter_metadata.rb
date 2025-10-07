@@ -28,7 +28,8 @@ class ChapterMetadata < ApplicationRecord
   belongs_to :chapter
   belongs_to :language
 
-  validates :metadata_type, presence: true, inclusion: { in: %w[summary suggestion] }
+  METADATA_TYPES = %w[summary suggestion].freeze
+  validates :metadata_type, presence: true, inclusion: { in: METADATA_TYPES }
   validates :content, presence: true
 
   scope :summaries, -> { where(metadata_type: 'summary') }
@@ -37,6 +38,4 @@ class ChapterMetadata < ApplicationRecord
   scope :filter_by_language, ->(language_id) { where(language_id: language_id) }
   scope :active, -> { where(is_active: true) }
   scope :ordered, -> { order(created_at: :asc) }
-
-  delegate :name, to: :language, prefix: true
 end

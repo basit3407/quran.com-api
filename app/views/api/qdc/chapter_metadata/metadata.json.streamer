@@ -1,20 +1,20 @@
 json.chapter_metadata do
-  json.chapter_id @presenter.chapter_id
+  json.chapter_id @finder.chapter_id
 
   json.suggestions do
-    json.array! @presenter.suggestions do |item|
+    json.array! @finder.suggestions do |item|
       json.id item.id
-      json.language_name item.language_name
+      json.language_name item.language.name
       json.text item.content
     end
   end
 
-  if @presenter.next_chapter
+  if @finder.next_chapter.present?
     json.next_chapter do
       json.summaries do
-        json.array! @presenter.next_chapter_summaries do |item|
+        json.array! @finder.next_chapter_summaries do |item|
           json.id item.id
-          json.language_name item.language_name
+          json.language_name item.language.name
           json.text item.content
         end
       end
@@ -23,12 +23,12 @@ json.chapter_metadata do
     json.next_chapter nil
   end
 
-  if @presenter.previous_chapter
+  if @finder.previous_chapter.present?
     json.previous_chapter do
       json.summaries do
-        json.array! @presenter.previous_chapter_summaries do |item|
+        json.array! @finder.previous_chapter_summaries do |item|
           json.id item.id
-          json.language_name item.language_name
+          json.language_name item.language.name
           json.text item.content
         end
       end

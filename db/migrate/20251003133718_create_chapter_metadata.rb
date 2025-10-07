@@ -7,13 +7,13 @@ class CreateChapterMetadata < ActiveRecord::Migration[7.0]
       t.string :metadata_type, null: false
       t.text :content, null: false
       t.integer :language_id, null: false
+      t.integer :resource_content_id
       t.boolean :is_active, default: true, null: false
 
       t.timestamps
     end
 
-    add_index :chapter_metadata, [:chapter_id, :language_id, :is_active, :metadata_type], name: 'index_chapter_metadata_on_query_pattern'
-    add_index :chapter_metadata, :language_id
+    add_index :chapter_metadata, [:chapter_id, :language_id, :metadata_type, :is_active], name: 'index_chapter_metadata_on_query_pattern'
 
     add_foreign_key :chapter_metadata, :chapters, column: :chapter_id
     add_foreign_key :chapter_metadata, :languages, column: :language_id
