@@ -2,25 +2,16 @@
 
 module Api::Qdc
   class ChapterMetadataController < ApiController
-    before_action :init_finder
-    before_action :validate_chapter
+    before_action :init_presenter
 
     def metadata
       render
     end
 
-    private
+    protected
 
-    def init_finder
-      @finder = Qdc::ChapterMetadataFinder.new(permitted_params)
-    end
-
-    def permitted_params
-      params.permit(:id, :language, :locale)
-    end
-
-    def validate_chapter
-      @finder.chapter
+    def init_presenter
+      @presenter = Qdc::ChapterMetadataPresenter.new(params)
     end
   end
 end

@@ -14,9 +14,11 @@ class CreateChapterMetadata < ActiveRecord::Migration[7.0]
     end
 
     add_index :chapter_metadata, [:chapter_id, :language_id, :metadata_type, :is_active], name: 'index_chapter_metadata_on_query_pattern'
+    add_index :chapter_metadata, :resource_content_id
 
     add_foreign_key :chapter_metadata, :chapters, column: :chapter_id
     add_foreign_key :chapter_metadata, :languages, column: :language_id
+    add_foreign_key :chapter_metadata, :resource_contents, column: :resource_content_id
 
     add_check_constraint :chapter_metadata, "metadata_type IN ('summary', 'suggestion')", name: 'check_metadata_type'
   end

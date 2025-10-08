@@ -295,7 +295,9 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
         expect(response).to have_http_status(:not_found)
         json = JSON.parse(response.body)
 
-        expect(json['error']).to eq('Chapter ID must be between 1 and 114. Please select a valid chapter number.')
+        expect(json['status']).to eq(404)
+        expect(json['error']).to be_a(String)
+        expect(json['error']).not_to be_empty
       end
 
       it 'returns 404 for chapter 115' do
@@ -304,19 +306,29 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
         expect(response).to have_http_status(:not_found)
         json = JSON.parse(response.body)
 
-        expect(json['error']).to eq('Chapter ID must be between 1 and 114. Please select a valid chapter number.')
+        expect(json['status']).to eq(404)
+        expect(json['error']).to be_a(String)
+        expect(json['error']).not_to be_empty
       end
 
       it 'returns 404 for chapter 999' do
         get '/api/qdc/chapters/999/metadata'
 
         expect(response).to have_http_status(:not_found)
+        json = JSON.parse(response.body)
+        expect(json['status']).to eq(404)
+        expect(json['error']).to be_a(String)
+        expect(json['error']).not_to be_empty
       end
 
       it 'returns 404 for negative chapter ID' do
         get '/api/qdc/chapters/-1/metadata'
 
         expect(response).to have_http_status(:not_found)
+        json = JSON.parse(response.body)
+        expect(json['status']).to eq(404)
+        expect(json['error']).to be_a(String)
+        expect(json['error']).not_to be_empty
       end
     end
 

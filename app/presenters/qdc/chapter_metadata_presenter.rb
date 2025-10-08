@@ -3,7 +3,6 @@
 module Qdc
   class ChapterMetadataPresenter < BasePresenter
     delegate :chapter,
-             :chapter_id,
              :suggestions,
              :next_chapter,
              :previous_chapter,
@@ -15,7 +14,8 @@ module Qdc
 
     def initialize(params)
       super(params)
-      @finder = Qdc::ChapterMetadataFinder.new(params)
+      lang_id = (language&.id || Language.default.id)
+      @finder = Qdc::ChapterMetadataFinder.new(params.merge(language_id: lang_id))
     end
   end
 end

@@ -1,39 +1,41 @@
-json.chapter_metadata do
-  json.chapter_id @finder.chapter_id
+json.object! do
+  json.chapter_metadata do
+    json.object! do
+      json.chapter_id @presenter.chapter.id
 
-  json.suggestions do
-    json.array! @finder.suggestions do |item|
-      json.id item.id
-      json.language_name item.language.name
-      json.text item.content
-    end
-  end
-
-  if @finder.next_chapter.present?
-    json.next_chapter do
-      json.summaries do
-        json.array! @finder.next_chapter_summaries do |item|
-          json.id item.id
-          json.language_name item.language.name
-          json.text item.content
+      json.suggestions do
+        json.array! @presenter.suggestions do |item|
+          json.partial! 'metadata_item', item: item
         end
       end
-    end
-  else
-    json.next_chapter nil
-  end
 
-  if @finder.previous_chapter.present?
-    json.previous_chapter do
-      json.summaries do
-        json.array! @finder.previous_chapter_summaries do |item|
-          json.id item.id
-          json.language_name item.language.name
-          json.text item.content
+      if @presenter.next_chapter.present?
+        json.next_chapter do
+          json.object! do
+            json.summaries do
+              json.array! @presenter.next_chapter_summaries do |item|
+                json.partial! 'metadata_item', item: item
+              end
+            end
+          end
         end
+      else
+        json.next_chapter nil
+      end
+
+      if @presenter.previous_chapter.present?
+        json.previous_chapter do
+          json.object! do
+            json.summaries do
+              json.array! @presenter.previous_chapter_summaries do |item|
+                json.partial! 'metadata_item', item: item
+              end
+            end
+          end
+        end
+      else
+        json.previous_chapter nil
       end
     end
-  else
-    json.previous_chapter nil
   end
 end
