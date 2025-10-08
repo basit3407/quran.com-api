@@ -6,7 +6,7 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
   let(:english) { Language.find_by(iso_code: 'en') }
   let(:arabic) { Language.find_by(iso_code: 'ar') }
 
-  before(:each) do
+  before do
     ChapterMetadata.delete_all
     Language.find_or_create_by!(iso_code: 'en', name: 'English')
     Language.find_or_create_by!(iso_code: 'ar', name: 'Arabic')
@@ -21,7 +21,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'Read this chapter when seeking guidance.',
             language_id: english.id,
-            
             is_active: true
           )
         end
@@ -32,7 +31,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'اقرأ هذه السورة عند طلب الهداية.',
             language_id: arabic.id,
-            
             is_active: true
           )
         end
@@ -43,7 +41,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'summary',
             content: 'This chapter emphasizes faith.',
             language_id: english.id,
-            
             is_active: true
           )
         end
@@ -54,7 +51,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'summary',
             content: 'تركز هذه السورة على الإيمان.',
             language_id: arabic.id,
-            
             is_active: true
           )
         end
@@ -123,7 +119,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'English only suggestion.',
             language_id: english.id,
-            
             is_active: true
           )
         end
@@ -156,7 +151,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'Final chapter suggestion.',
             language_id: english.id,
-            
             is_active: true
           )
         end
@@ -167,7 +161,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'summary',
             content: 'Previous chapter summary.',
             language_id: english.id,
-            
             is_active: true
           )
         end
@@ -201,7 +194,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'Active suggestion.',
             language_id: english.id,
-            
             is_active: true
           )
         end
@@ -212,7 +204,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'Inactive suggestion.',
             language_id: english.id,
-            
             is_active: false
           )
         end
@@ -235,7 +226,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'First suggestion (older).',
             language_id: english.id,
-            
             is_active: true,
             created_at: 2.days.ago
           )
@@ -247,7 +237,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'Second suggestion (newer).',
             language_id: english.id,
-            
             is_active: true,
             created_at: 1.day.ago
           )
@@ -272,7 +261,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
             metadata_type: 'suggestion',
             content: 'Test suggestion.',
             language_id: arabic.id,
-            
             is_active: true
           )
         end
@@ -317,6 +305,7 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
         expect(response).to have_http_status(:not_found)
         json = JSON.parse(response.body)
         expect(json['status']).to eq(404)
+
         expect(json['error']).to be_a(String)
         expect(json['error']).not_to be_empty
       end
@@ -339,7 +328,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
           metadata_type: 'suggestion',
           content: 'Default English suggestion.',
           language_id: english.id,
-          
           is_active: true
         )
 
@@ -357,7 +345,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
           metadata_type: 'suggestion',
           content: 'Fallback to English.',
           language_id: english.id,
-          
           is_active: true
         )
 
@@ -375,7 +362,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
           metadata_type: 'summary',
           content: 'Summary only.',
           language_id: english.id,
-          
           is_active: true
         )
 
@@ -407,7 +393,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
           metadata_type: 'suggestion',
           content: 'Test content.',
           language_id: english.id,
-          
           is_active: true
         )
       end
@@ -441,7 +426,6 @@ RSpec.describe 'QDC Chapter Metadata API', type: :request do
           metadata_type: 'summary',
           content: 'Next summary.',
           language_id: english.id,
-          
           is_active: true
         )
 
