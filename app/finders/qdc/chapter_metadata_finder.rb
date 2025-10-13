@@ -19,13 +19,13 @@ module Qdc
 
     def next_chapter
       strong_memoize :next_chapter do
-        Chapter.find_by(id: chapter.id + 1)
+        Chapter.find_by(id: chapter.id + 1) unless chapter.id == 114
       end
     end
 
     def previous_chapter
       strong_memoize :previous_chapter do
-        Chapter.find_by(id: chapter.id - 1)
+        Chapter.find_by(id: chapter.id - 1) unless chapter.id == 1
       end
     end
 
