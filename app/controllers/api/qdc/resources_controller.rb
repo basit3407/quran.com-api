@@ -195,6 +195,17 @@ module Api::Qdc
                  []
                end
 
+      # QR default arabic fonts
+      qr_font_ids = if preference.qr_default_arabic_fonts.present?
+                      preference.qr_default_arabic_fonts
+                        .split(',')
+                        .map(&:strip)
+                        .reject(&:blank?)
+                        .map(&:to_i)
+                    else
+                      []
+                    end
+
       {
         preference: preference,
         default_mushaf: preference.mushaf&.enabled ? preference.mushaf : nil,
@@ -207,7 +218,8 @@ module Api::Qdc
         default_reciter: preference.reciter,
         ayah_reflections_languages: Language.where(iso_code: preference.ayah_reflections_languages&.split(',') || []),
         qr_reflection_languages: Language.where(iso_code: preference.qr_reflection_languages&.split(',') || []),
-        learning_plan_languages: Language.where(iso_code: preference.learning_plan_languages&.split(',') || [])
+        learning_plan_languages: Language.where(iso_code: preference.learning_plan_languages&.split(',') || []),
+        qr_default_arabic_fonts: qr_font_ids
       }
     end
 

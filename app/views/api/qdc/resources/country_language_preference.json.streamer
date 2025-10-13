@@ -92,4 +92,10 @@ json.object! do
       end
     end
   end
+
+  json.qr_default_arabic_fonts do
+    json.array! @data[:qr_default_arabic_fonts] do |font_id|
+      json.value! font_id
+    end
+  end
 end
