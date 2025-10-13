@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_09_09_000000) do
+ActiveRecord::Schema[7.0].define(version: 2025_10_13_110636) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -339,6 +339,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_09_09_000000) do
     t.datetime "updated_at", null: false
     t.string "qr_default_translations_ids"
     t.string "qr_reflection_languages"
+    t.string "qr_default_arabic_fonts"
   end
 
   create_table "data_sources", id: :serial, force: :cascade do |t|
@@ -1636,6 +1637,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_09_09_000000) do
   end
 
   add_foreign_key "ayah", "surah", primary_key: "surah_id", name: "ayah_surah_id_fkey"
+  add_foreign_key "chapter_metadata", "chapters"
+  add_foreign_key "chapter_metadata", "languages"
   add_foreign_key "char_type", "char_type", column: "parent_id", primary_key: "char_type_id", name: "char_type_parent_id_fkey", on_update: :cascade, on_delete: :nullify
   add_foreign_key "country_language_preferences", "languages", column: "default_wbw_language", primary_key: "iso_code", on_delete: :cascade
   add_foreign_key "country_language_preferences", "languages", column: "user_device_language", primary_key: "iso_code", on_delete: :cascade

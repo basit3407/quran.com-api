@@ -10,6 +10,7 @@
 #  default_translation_ids     :string
 #  default_wbw_language        :string
 #  learning_plan_languages     :string
+#  qr_default_arabic_fonts     :string
 #  qr_default_translations_ids :string
 #  qr_reflection_languages     :string
 #  user_device_language        :string           not null
