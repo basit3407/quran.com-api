@@ -21,7 +21,7 @@
 #
 # Foreign Keys
 #
-#  fk_rails_1069e91c22  (default_reciter => reciters.id) ON DELETE => cascade
+#  fk_rails_1069e91c22  (default_reciter => audio_recitations.id) ON DELETE => cascade
 #  fk_rails_508ee899a1  (user_device_language => languages.iso_code) ON DELETE => cascade
 #  fk_rails_90bfd196ab  (default_tafsir_id => resource_contents.id) ON DELETE => cascade
 #  fk_rails_9b4f468673  (default_wbw_language => languages.iso_code) ON DELETE => cascade
@@ -29,7 +29,7 @@
 #
 
 class CountryLanguagePreference < ApplicationRecord
-  belongs_to :reciter, foreign_key: :default_reciter, optional: true
+  belongs_to :audio_recitation, class_name: 'Audio::Recitation', foreign_key: :default_reciter, optional: true
   belongs_to :language, foreign_key: :user_device_language, primary_key: :iso_code, optional: true
   belongs_to :wbw_language, class_name: 'Language', foreign_key: :default_wbw_language, primary_key: :iso_code, optional: true
   belongs_to :mushaf, foreign_key: :default_mushaf_id, optional: true
@@ -38,6 +38,6 @@ class CountryLanguagePreference < ApplicationRecord
   validates :user_device_language, presence: true
 
   scope :with_includes, -> {
-    includes(:reciter, :language, :wbw_language, :mushaf, :tafsir)
+    includes(:audio_recitation, :language, :wbw_language, :mushaf, :tafsir)
   }
 end
