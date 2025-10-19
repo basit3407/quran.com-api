@@ -215,7 +215,7 @@ module Api::Qdc
           ResourceContent.where(id: qr_ids).approved.includes(:translated_name) : [],
         default_tafsir: preference.tafsir&.approved? ? preference.tafsir : nil,
         default_wbw_language: preference.wbw_language,
-        default_reciter: preference.reciter,
+        default_reciter: preference.audio_recitation,
         ayah_reflections_languages: Language.where(iso_code: preference.ayah_reflections_languages&.split(',') || []),
         qr_reflection_languages: Language.where(iso_code: preference.qr_reflection_languages&.split(',') || []),
         learning_plan_languages: Language.where(iso_code: preference.learning_plan_languages&.split(',') || []),
