@@ -46,5 +46,8 @@ module QuranAPI
 
     # Disable IP spoofing attack check
     config.action_dispatch.ip_spoofing_check = false
+
+    # Skip host authorization for health endpoints in all environments
+    config.host_authorization = { exclude: ->(request) { request.path.start_with?('/health', '/ready') } }
   end
 end
