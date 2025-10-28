@@ -13,6 +13,9 @@ Rails.application.config.hosts += [
   '.ondigitalocean.app',
   '.quranreflect.com',
   '.quranreflect.org',
+  '.test.quranreflect.org',
+  '.staging.quranreflect.org',
+  '.prelive.quranreflect.org',
 ]
 
 if Rails.env.development?
