@@ -59,6 +59,10 @@ json.object! do
     json.default_wbw_language nil
   end
 
+  json.default_locale @data[:default_locale]&.iso_code
+
+  json.qr_default_locale @data[:qr_default_locale]&.iso_code
+
   if @data[:default_reciter]
     json.default_reciter do
       json.object! do

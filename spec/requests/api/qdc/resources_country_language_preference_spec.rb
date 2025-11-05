@@ -73,5 +73,22 @@ RSpec.describe 'QDC Resources country_language_preference', type: :request do
       json = JSON.parse(response.body)
       expect(json['qr_default_arabic_fonts']).to eq([1, 2, 3])
     end
+
+    it 'includes default_locale and qr_default_locale when present' do
+      pref_with_locales = CountryLanguagePreference.create!(
+        user_device_language: 'xx',
+        country: 'DE',
+        default_locale: 'xx',
+        qr_default_locale: 'zz'
+      )
+
+      get '/api/qdc/resources/country_language_preference', params: { user_device_language: 'xx', country: 'DE' }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+
+      expect(json.dig('default_locale', 'iso_code')).to eq('xx')
+      expect(json.dig('qr_default_locale', 'iso_code')).to eq('zz')
+    end
   end
 end
