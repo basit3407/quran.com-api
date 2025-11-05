@@ -59,6 +59,26 @@ json.object! do
     json.default_wbw_language nil
   end
 
+  if @data[:default_locale]
+    json.default_locale do
+      json.object! do
+        json.extract! @data[:default_locale], :id, :name, :iso_code
+      end
+    end
+  else
+    json.default_locale nil
+  end
+
+  if @data[:qr_default_locale]
+    json.qr_default_locale do
+      json.object! do
+        json.extract! @data[:qr_default_locale], :id, :name, :iso_code
+      end
+    end
+  else
+    json.qr_default_locale nil
+  end
+
   if @data[:default_reciter]
     json.default_reciter do
       json.object! do

@@ -34,10 +34,20 @@ class CountryLanguagePreference < ApplicationRecord
   belongs_to :wbw_language, class_name: 'Language', foreign_key: :default_wbw_language, primary_key: :iso_code, optional: true
   belongs_to :mushaf, foreign_key: :default_mushaf_id, optional: true
   belongs_to :tafsir, class_name: 'ResourceContent', foreign_key: :default_tafsir_id, optional: true
+  belongs_to :default_locale_language, class_name: 'Language', foreign_key: :default_locale, primary_key: :iso_code, optional: true
+  belongs_to :qr_default_locale_language, class_name: 'Language', foreign_key: :qr_default_locale, primary_key: :iso_code, optional: true
 
   validates :user_device_language, presence: true
 
   scope :with_includes, -> {
-    includes(:audio_recitation, :language, :wbw_language, :mushaf, :tafsir)
+    includes(
+      :audio_recitation,
+      :language,
+      :wbw_language,
+      :mushaf,
+      :tafsir,
+      :default_locale_language,
+      :qr_default_locale_language
+    )
   }
 end
