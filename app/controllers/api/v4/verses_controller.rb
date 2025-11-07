@@ -44,6 +44,10 @@ module Api::V4
       render partial: 'verse', locals: { verse: @presenter.find_verse }
     end
 
+    def by_range
+      render partial: 'verses'
+    end
+
     protected
     def init_presenter
       @presenter = VersesPresenter.new(params, action_name)
