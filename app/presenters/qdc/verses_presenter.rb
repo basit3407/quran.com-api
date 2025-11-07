@@ -130,7 +130,8 @@ module Qdc
           approved_tafsirs = ResourceContent
                                .approved
                                .tafsirs
-                               .one_verse
+                               .verse_level
+                               .allowed_to_share
 
           params[:tafsirs] = approved_tafsirs
                                .where(id: tafsirs)

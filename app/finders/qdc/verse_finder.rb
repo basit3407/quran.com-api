@@ -267,6 +267,7 @@ class Qdc::VerseFinder < ::VerseFinder
   def load_tafsirs(tafsirs)
     @results = @results
                  .where(tafsirs: { resource_content_id: tafsirs })
+                 .distinct
                  .eager_load(:tafsirs)
   end
 
