@@ -72,6 +72,8 @@ class ResourceContent < ApplicationRecord
   scope :tafsirs, -> { where sub_type: SubType::Tafsir }
   scope :chapter_info, -> { where sub_type: SubType::Info }
   scope :one_verse, -> { where cardinality_type: CardinalityType::OneVerse }
+  scope :n_verse, -> { where cardinality_type: CardinalityType::NVerse }
+  scope :verse_level, -> { where cardinality_type: [CardinalityType::OneVerse, CardinalityType::NVerse] }
   scope :one_chapter, -> { where cardinality_type: CardinalityType::OneChapter }
   scope :one_word, -> { where cardinality_type: CardinalityType::OneWord }
   scope :approved, -> { where approved: true }
