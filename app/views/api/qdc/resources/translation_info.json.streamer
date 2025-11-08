@@ -12,6 +12,16 @@ json.object! do
           json.extract! translated_name, :name, :language_name
         end
       end
+
+      json.short_description do
+        lang = Language.find_with_id_or_iso_code(params[:language].presence || params[:locale].presence || 'en')
+        sd = @translation.short_descriptions&.find { |s| s.language_id == lang&.id } ||
+             @translation.short_descriptions&.find { |s| s.language_id == Language.default&.id }
+        json.object! do
+          json.description sd&.description
+          json.language_name sd&.language_name
+        end
+      end
     end
   end
 end

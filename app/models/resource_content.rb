@@ -108,6 +108,10 @@ class ResourceContent < ApplicationRecord
   has_one :resource_content_stat
   has_one :resource_permission
 
+  has_many :short_descriptions, as: :resource
+  has_one :short_description, as: :resource
+  has_one :en_short_description, -> { where language_id: 38 }, as: :resource, class_name: 'ShortDescription'
+
   def self.filter_by(ids: nil, name: nil)
     if name.present?
       list = joins(:author)

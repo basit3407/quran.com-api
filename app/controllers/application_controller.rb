@@ -68,6 +68,24 @@ class ApplicationController < ActionController::API
     end
   end
 
+  def eager_load_short_description(records)
+    language = Language.find_with_id_or_iso_code(fetch_locale)
+    defaults = records.where(
+      short_descriptions: { language_id: Language.default.id }
+    )
+
+    if language.nil? || language.default?
+      defaults
+    else
+      records
+        .where(
+          short_descriptions: { language_id: language }
+        )
+        .or(defaults)
+        .order('short_descriptions.language_priority DESC')
+    end
+  end
+
   def after_timestamp
     if time = params[:updated_after].presence
       time !~ /\D/ ? DateTime.strptime(time, '%s') : Time.parse(time)

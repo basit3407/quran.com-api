@@ -22,6 +22,7 @@ module Api::Qdc
 
     def translation_info
       if @translation = fetch_translation_resource
+        @translation = ResourceContent.includes(:short_descriptions).find(@translation.id)
         render
       else
         render_404("Translation not found")
@@ -215,7 +216,7 @@ module Api::Qdc
 
     def load_translations
       list = ResourceContent
-               .eager_load(:translated_name)
+               .includes(:translated_name, :short_descriptions)
                .one_verse
                .translations
                .approved
