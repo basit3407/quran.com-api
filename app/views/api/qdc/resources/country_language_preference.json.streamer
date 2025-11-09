@@ -1,0 +1,105 @@
+json.object! do
+  json.extract! @data[:preference], :id, :country, :user_device_language
+
+  if @data[:default_mushaf]
+    json.default_mushaf do
+      json.object! do
+        json.extract! @data[:default_mushaf], :id, :name
+      end
+    end
+  else
+    json.default_mushaf nil
+  end
+
+  json.default_translations do
+    json.array! @data[:default_translations] do |translation|
+      json.object! do
+        json.extract! translation, :id, :name, :author_name, :slug, :language_name
+        json.translated_name do
+          translated_name = translation.translated_name
+          json.object! do
+            json.extract! translated_name, :name, :language_name
+          end
+        end
+      end
+    end
+  end
+
+  json.qr_default_translations do
+    json.array! @data[:qr_default_translations] do |translation|
+      json.object! do
+        json.extract! translation, :id, :name, :author_name, :slug, :language_name
+        json.translated_name do
+          translated_name = translation.translated_name
+          json.object! do
+            json.extract! translated_name, :name, :language_name
+          end
+        end
+      end
+    end
+  end
+
+  if @data[:default_tafsir]
+    json.default_tafsir do
+      json.object! do
+        json.extract! @data[:default_tafsir], :id, :name, :author_name
+      end
+    end
+  else
+    json.default_tafsir nil
+  end
+
+  if @data[:default_wbw_language]
+    json.default_wbw_language do
+      json.object! do
+        json.extract! @data[:default_wbw_language], :id, :name, :iso_code
+      end
+    end
+  else
+    json.default_wbw_language nil
+  end
+
+  json.default_locale @data[:default_locale]&.iso_code
+
+  json.qr_default_locale @data[:qr_default_locale]&.iso_code
+
+  if @data[:default_reciter]
+    json.default_reciter do
+      json.object! do
+        json.extract! @data[:default_reciter], :id, :name
+      end
+    end
+  else
+    json.default_reciter nil
+  end
+
+  json.ayah_reflections_languages do
+    json.array! @data[:ayah_reflections_languages] do |language|
+      json.object! do
+        json.extract! language, :id, :name, :iso_code
+      end
+    end
+  end
+
+  json.qr_reflection_languages do
+    json.array! @data[:qr_reflection_languages] do |language|
+      json.object! do
+        json.extract! language, :id, :name, :iso_code
+      end
+    end
+  end
+
+  json.learning_plan_languages do
+    json.array! @data[:learning_plan_languages] do |language|
+      json.object! do
+        json.extract! language, :id, :name, :iso_code
+      end
+    end
+  end
+
+  json.qr_default_arabic_fonts do
+    json.array! @data[:qr_default_arabic_fonts] do |font_id|
+      json.value! font_id
+    end
+  end
+end

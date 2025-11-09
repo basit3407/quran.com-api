@@ -8,6 +8,7 @@ Rails.application.config.hosts += [
   '.apis-staging.quran.foundation',
   '.apis-testing.quran.foundation',
   '.apis-pre-live.quran.foundation',
+  '.apis.quran.foundation',
   '.testing.quran.foundation',
   '.pre-live.quran.foundation',
   '.ondigitalocean.app',
@@ -20,4 +21,8 @@ Rails.application.config.hosts += [
 
 if Rails.env.development?
   Rails.application.config.hosts +=['.loca.lt', /.ngrok.io/, 'localhost']
+end
+
+if Rails.env.test?
+  Rails.application.config.hosts += ['www.example.com', 'example.org', 'example.com']
 end
