@@ -14,12 +14,11 @@ json.object! do
       end
 
       json.short_description do
-        lang = Language.find_with_id_or_iso_code(params[:language].presence || params[:locale].presence || 'en')
-        sd = @translation.short_descriptions&.find { |s| s.language_id == lang&.id } ||
-             @translation.short_descriptions&.find { |s| s.language_id == Language.default&.id }
+        locale = params[:language].presence || params[:locale].presence || 'en'
+        short_description = @translation.localized_short_description(locale)
         json.object! do
-          json.description sd&.description
-          json.language_name sd&.language_name
+          json.description short_description&.description
+          json.language_name short_description&.language_name
         end
       end
     end
