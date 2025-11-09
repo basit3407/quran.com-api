@@ -38,9 +38,6 @@ namespace :qdc do
   # Chapter info
   get 'chapters/:id/info', to: 'chapter_infos#show'
 
-  # Chapter metadata
-  get 'chapters/:id/metadata', to: 'chapter_metadata#metadata'
-
   # Juz
   get 'juzs', to: 'juzs#index'
   get 'juzs/:id', to: 'juzs#show'

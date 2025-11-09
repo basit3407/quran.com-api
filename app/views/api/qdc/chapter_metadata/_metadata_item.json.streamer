@@ -1,5 +1,0 @@
-json.object! do
-  json.id item.id
-  json.language_name item.language.name
-  json.text item.content
-end
