@@ -4,4 +4,6 @@ class ShortDescription < ApplicationRecord
   include LanguageFilterable
 
   belongs_to :resource, polymorphic: true
+
+  validates :description, presence: true
 end

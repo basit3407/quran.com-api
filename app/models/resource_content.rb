@@ -103,8 +103,6 @@ class ResourceContent < ApplicationRecord
     Data = 'data' # General data, ()Mushaf layout info for now)
   end
 
-  ENGLISH_LANGUAGE_ID = 38
-
   belongs_to :author
   belongs_to :data_source
   has_one :resource_content_stat
@@ -114,8 +112,8 @@ class ResourceContent < ApplicationRecord
 
   def localized_short_description(language_code = 'en')
     language = Language.find_with_id_or_iso_code(language_code)
-    short_descriptions.find { |sd| sd.language_id == language&.id } ||
-      short_descriptions.find { |sd| sd.language_id == Language.default&.id }
+    descriptions_by_language = short_descriptions.index_by(&:language_id)
+    descriptions_by_language[language&.id] || descriptions_by_language[Language.default&.id]
   end
 
   def self.filter_by(ids: nil, name: nil)

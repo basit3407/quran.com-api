@@ -14,8 +14,7 @@ json.object! do
   end
 
   json.short_description do
-    locale = params[:language].presence || params[:locale].presence || 'en'
-    short_description = translation.localized_short_description(locale)
+    short_description = translation.localized_short_description(@locale)
     json.object! do
       json.description short_description&.description
       json.language_name short_description&.language_name

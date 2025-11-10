@@ -9,6 +9,7 @@ module Api::Qdc
 
     def translations
       load_translations
+      @locale = fetch_locale
 
       render
     end
@@ -17,12 +18,13 @@ module Api::Qdc
     def filter
       translation_ids = params[:translations].to_s.split(',')
       @translations = load_translations.where(id: translation_ids)
+      @locale = fetch_locale
       render
     end
 
     def translation_info
       approved = ResourceContent
-                   .includes(:translated_name, :short_descriptions)
+                   .includes(:short_descriptions)
                    .translations
                    .one_verse
                    .approved
@@ -31,6 +33,7 @@ module Api::Qdc
       @translation = find_resource(approved, params[:translation_id], true)
 
       if @translation
+        @locale = fetch_locale
         render
       else
         render_404("Translation not found")
