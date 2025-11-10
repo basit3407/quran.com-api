@@ -51,6 +51,28 @@ RSpec.describe ResourceContent do
     it { is_expected.to belong_to :language }
     it { is_expected.to belong_to :author }
     it { is_expected.to belong_to :data_source }
+    it { is_expected.to have_many(:short_descriptions) }
+  end
+
+  describe '#localized_short_description' do
+    let(:english_lang) { Language.find_by(iso_code: 'en') }
+    let(:translation) { ResourceContent.approved.translations.one_verse.first }
+
+    it 'returns localized short description when available' do
+      skip 'No approved translations available' unless translation
+      skip 'English language not found' unless english_lang
+
+      # Create test short description
+      ShortDescription.create!(
+        resource: translation,
+        language: english_lang,
+        description: 'Test description'
+      )
+
+      result = translation.reload.localized_short_description('en')
+      expect(result).not_to be_nil
+      expect(result.description).to eq('Test description')
+    end
   end
 
   context 'with columns and indexes' do
