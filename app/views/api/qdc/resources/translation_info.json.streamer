@@ -13,13 +13,7 @@ json.object! do
         end
       end
 
-      json.short_description do
-        short_description = @translation.localized_short_description(@locale)
-        json.object! do
-          json.description short_description&.description
-          json.language_name short_description&.language_name
-        end
-      end
+      json.partial! 'api/qdc/resources/short_description', resource: @translation, locale: @locale
     end
   end
 end
