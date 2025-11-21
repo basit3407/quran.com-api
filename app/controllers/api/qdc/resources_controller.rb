@@ -22,7 +22,7 @@ module Api::Qdc
 
     def translation_info
       if @translation = fetch_translation_resource
-        @details_requested = include_in_response?(params[:details])
+        @details_requested = params[:details] == 'true'
         render
       else
         render_404("Translation not found")
