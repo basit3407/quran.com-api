@@ -12,8 +12,6 @@ json.object! do
           json.extract! translated_name, :name, :language_name
         end
       end
-
-      json.partial! 'api/qdc/resources/short_description', resource: @translation
     end
   end
 end

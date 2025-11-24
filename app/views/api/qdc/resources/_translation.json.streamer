@@ -13,5 +13,11 @@ json.object! do
     end
   end
 
-  json.partial! 'api/qdc/resources/short_description', resource: translation
+  json.short_description do
+    short_description = translation.short_description
+    json.object! do
+      json.description short_description&.description
+      json.language_name short_description&.language_name
+    end
+  end
 end
