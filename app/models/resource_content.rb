@@ -107,14 +107,7 @@ class ResourceContent < ApplicationRecord
   belongs_to :data_source
   has_one :resource_content_stat
   has_one :resource_permission
-
-  has_many :short_descriptions, as: :resource
-
-  def localized_short_description(language_code = 'en')
-    language = Language.find_with_id_or_iso_code(language_code)
-    descriptions_by_language = short_descriptions.index_by(&:language_id)
-    descriptions_by_language[language&.id] || descriptions_by_language[Language.default&.id]
-  end
+  has_one :short_description, as: :resource
 
   def self.filter_by(ids: nil, name: nil)
     if name.present?

@@ -13,5 +13,5 @@ json.object! do
     end
   end
 
-  json.partial! 'api/qdc/resources/short_description', resource: translation, locale: @locale
+  json.partial! 'api/qdc/resources/short_description', resource: translation
 end

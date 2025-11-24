@@ -1,10 +1,7 @@
 # frozen_string_literal: true
 
-# Renders short description for a resource
-# Usage: json.partial! 'api/qdc/resources/short_description', resource: translation, locale: @locale
-
 json.short_description do
-  short_description = resource.localized_short_description(locale)
+  short_description = resource.short_description
   json.object! do
     json.description short_description&.description
     json.language_name short_description&.language_name

@@ -21,6 +21,7 @@
 #  index_short_descriptions_on_resource_type_and_resource_id  (resource_type,resource_id)
 #
 class ShortDescription < ApplicationRecord
-  belongs_to :language
+  include LanguageFilterable
+
   belongs_to :resource, polymorphic: true
 end
