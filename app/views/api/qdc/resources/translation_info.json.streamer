@@ -12,6 +12,12 @@ json.object! do
           json.extract! translated_name, :name, :language_name
         end
       end
+
+      # Only include these fields when details=true
+      if @details_requested
+        json.meta_data @translation.meta_data
+        json.data_source_id @translation.data_source_id
+      end
     end
   end
 end
