@@ -20,16 +20,7 @@ module Api::Qdc
     end
 
     def translation_info
-      approved = ResourceContent
-                   .eager_load(:translated_name, :short_description)
-                   .translations
-                   .one_verse
-                   .approved
-                   .allowed_to_share
-
-      @translation = find_resource(approved, params[:translation_id], true)
-
-      if @translation
+      if @translation = fetch_translation_resource
         render
       else
         render_404("Translation not found")
