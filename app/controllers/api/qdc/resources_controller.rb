@@ -9,6 +9,7 @@ module Api::Qdc
 
     def translations
       load_translations
+      
       render
     end
 
