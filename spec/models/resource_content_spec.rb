@@ -51,7 +51,6 @@ RSpec.describe ResourceContent do
     it { is_expected.to belong_to :language }
     it { is_expected.to belong_to :author }
     it { is_expected.to belong_to :data_source }
-    it { is_expected.to have_one(:short_description) }
   end
 
   context 'with columns and indexes' do
@@ -62,7 +61,6 @@ RSpec.describe ResourceContent do
       mobile_translation_id: :integer,
       author_name: :string,
       resource_type: :string,
-      resource_type_name: :string,
       sub_type: :string,
       name: :string,
       description: :text,
@@ -70,15 +68,7 @@ RSpec.describe ResourceContent do
       language_id: :integer,
       language_name: :string,
       slug: :string,
-      priority: :integer,
-      resource_info: :text,
-      resource_id: :string,
-      meta_data: :jsonb,
-      sqlite_db: :string,
-      sqlite_db_generated_at: :datetime,
-      records_count: :integer,
-      permission_to_host: :integer,
-      permission_to_share: :integer
+      priority: :integer
     }
 
     indexes = [
@@ -87,6 +77,7 @@ RSpec.describe ResourceContent do
       ['cardinality_type'],
       ['data_source_id'],
       ['language_id'],
+      ['resource_type'],
       ['slug'],
       ['sub_type'],
       ['priority']
