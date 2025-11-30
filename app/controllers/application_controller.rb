@@ -52,7 +52,9 @@ class ApplicationController < ActionController::API
 
   def eager_load_translated_name(records)
     language = Language.find_with_id_or_iso_code(fetch_locale)
-    defaults = records.where(translated_names: { language_id: Language.default.id })
+    defaults = records.where(
+      translated_names: { language_id: Language.default.id }
+    )
     has_short_desc = records.eager_load_values.include?(:short_description)
 
     if has_short_desc
@@ -63,7 +65,7 @@ class ApplicationController < ActionController::API
       defaults
     else
       query = records.where(translated_names: { language_id: language })
-      query = query.where('short_descriptions.language_id = ? OR short_descriptions.language_id IS NULL', language.id) if has_short_desc
+      query = records.where(short_descriptions: { language_id: language }) if has_short_desc
       query.or(defaults).order('translated_names.language_priority DESC')
     end
   end
