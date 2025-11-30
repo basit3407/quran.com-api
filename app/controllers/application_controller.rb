@@ -58,14 +58,14 @@ class ApplicationController < ActionController::API
     has_short_desc = records.eager_load_values.include?(:short_description)
 
     if has_short_desc
-      defaults = defaults.where('short_descriptions.language_id = ? OR short_descriptions.language_id IS NULL', Language.default.id)
+      defaults = defaults.where('short_descriptions.language_id = ? OR short_descriptions.id IS NULL', Language.default.id)
     end
 
     if language.nil? || language.default?
       defaults
     else
       query = records.where(translated_names: { language_id: language })
-      query = query.where(short_descriptions: { language_id: language }) if has_short_desc
+      query = query.where('short_descriptions.language_id = ? OR short_descriptions.language_id IS NULL', language.id) if has_short_desc
       query.or(defaults).order('translated_names.language_priority DESC')
     end
   end

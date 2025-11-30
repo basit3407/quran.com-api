@@ -13,11 +13,12 @@ json.object! do
     end
   end
 
+ if (short_description = translation.short_description)
   json.short_description do
-    short_description = translation.short_description
     json.object! do
-      json.description short_description&.description
-      json.language_name short_description&.language_name
+      json.description short_description.description
+      json.language_name short_description.language_name
+    end
     end
   end
 end
