@@ -65,7 +65,7 @@ class ApplicationController < ActionController::API
       defaults
     else
       query = records.where(translated_names: { language_id: language })
-      query = records.where(short_descriptions: { language_id: language }) if has_short_desc
+      query = query.where(short_descriptions: { language_id: language }) if has_short_desc
       query.or(defaults).order('translated_names.language_priority DESC')
     end
   end
