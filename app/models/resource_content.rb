@@ -50,6 +50,7 @@
 class ResourceContent < ApplicationRecord
   include LanguageFilterable
   include NameTranslateable
+  include ShortDescriptable
 
   enum permission_to_host: {
     unknown: 0,
@@ -107,7 +108,6 @@ class ResourceContent < ApplicationRecord
   belongs_to :data_source
   has_one :resource_content_stat
   has_one :resource_permission
-  has_one :short_description, as: :resource
 
   def self.filter_by(ids: nil, name: nil)
     if name.present?
@@ -125,6 +125,10 @@ class ResourceContent < ApplicationRecord
   def increment_download_count!
     stats = resource_content_stat || create_resource_content_stat
     stats.update_column :download_count, stats.download_count.to_i + 1
+  end
+
+  def short_description_for_language(language_code = 'en')
+    short_descriptions.filter_by_language_or_default(language_code)
   end
 
   def self.change_log(before: nil, after: nil)

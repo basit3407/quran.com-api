@@ -9,6 +9,7 @@ module Api::Qdc
 
     def translations
       load_translations
+      @language = fetch_locale
 
       render
     end
@@ -215,7 +216,8 @@ module Api::Qdc
 
     def load_translations
       list = ResourceContent
-               .eager_load(:translated_name, :short_description)
+               .eager_load(:translated_name)
+               .includes(:short_descriptions)
                .one_verse
                .translations
                .approved
