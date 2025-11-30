@@ -31,16 +31,4 @@ RSpec.describe 'QDC Resources with Short Descriptions', type: :request do
       expect(translation_data['short_description']['description']).to eq('Clear and easy')
     end
   end
-
-  describe 'GET /api/qdc/resources/translations/:translation_id/info' do
-    it 'returns translation info with short description' do
-      get "/api/qdc/resources/translations/#{translation.id}/info"
-
-      expect(response).to have_http_status(:ok)
-      json = JSON.parse(response.body)
-
-      expect(json['info']['short_description']).to be_present
-      expect(json['info']['short_description']['description']).to eq('Clear and easy')
-    end
-  end
 end

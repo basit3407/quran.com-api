@@ -51,28 +51,7 @@ RSpec.describe ResourceContent do
     it { is_expected.to belong_to :language }
     it { is_expected.to belong_to :author }
     it { is_expected.to belong_to :data_source }
-    it { is_expected.to have_many(:short_descriptions) }
-  end
-
-  describe '#localized_short_description' do
-    let(:english_lang) { Language.find_by(iso_code: 'en') }
-    let(:translation) { ResourceContent.approved.translations.one_verse.first }
-
-    it 'returns localized short description when available' do
-      skip 'No approved translations available' unless translation
-      skip 'English language not found' unless english_lang
-
-      # Create test short description
-      ShortDescription.create!(
-        resource: translation,
-        language: english_lang,
-        description: 'Test description'
-      )
-
-      result = translation.reload.localized_short_description('en')
-      expect(result).not_to be_nil
-      expect(result.description).to eq('Test description')
-    end
+    it { is_expected.to have_one(:short_description) }
   end
 
   context 'with columns and indexes' do
@@ -83,6 +62,7 @@ RSpec.describe ResourceContent do
       mobile_translation_id: :integer,
       author_name: :string,
       resource_type: :string,
+      resource_type_name: :string,
       sub_type: :string,
       name: :string,
       description: :text,
@@ -90,7 +70,15 @@ RSpec.describe ResourceContent do
       language_id: :integer,
       language_name: :string,
       slug: :string,
-      priority: :integer
+      priority: :integer,
+      resource_info: :text,
+      resource_id: :string,
+      meta_data: :jsonb,
+      sqlite_db: :string,
+      sqlite_db_generated_at: :datetime,
+      records_count: :integer,
+      permission_to_host: :integer,
+      permission_to_share: :integer
     }
 
     indexes = [
@@ -99,7 +87,6 @@ RSpec.describe ResourceContent do
       ['cardinality_type'],
       ['data_source_id'],
       ['language_id'],
-      ['resource_type'],
       ['slug'],
       ['sub_type'],
       ['priority']
