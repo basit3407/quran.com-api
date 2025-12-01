@@ -127,10 +127,6 @@ class ResourceContent < ApplicationRecord
     stats.update_column :download_count, stats.download_count.to_i + 1
   end
 
-  def short_description_for_language(language_code = 'en')
-    short_descriptions.filter_by_language_or_default(language_code)
-  end
-
   def self.change_log(before: nil, after: nil)
     list = self
 
