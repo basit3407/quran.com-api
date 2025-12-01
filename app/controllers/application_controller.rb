@@ -60,7 +60,9 @@ class ApplicationController < ActionController::API
       defaults
     else
       records
-        .where(translated_names: { language_id: language })
+        .where(
+          translated_names: { language_id: language }
+        )
         .or(defaults)
         .order('translated_names.language_priority DESC')
     end
