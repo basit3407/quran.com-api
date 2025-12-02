@@ -57,7 +57,7 @@ class ApplicationController < ActionController::API
     )
 
     if language.nil? || language.default?
-      defaults.order('translated_names.language_priority DESC')
+      defaults
     else
       records
         .where(
