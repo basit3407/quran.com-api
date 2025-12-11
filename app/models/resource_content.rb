@@ -50,6 +50,7 @@
 class ResourceContent < ApplicationRecord
   include LanguageFilterable
   include NameTranslateable
+  include ShortDescriptable
 
   enum permission_to_host: {
     unknown: 0,

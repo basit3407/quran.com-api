@@ -228,8 +228,11 @@ module Api::Qdc
     protected
 
     def load_translations
+      @language = fetch_locale
+
       list = ResourceContent
                .eager_load(:translated_name)
+               .includes(:short_descriptions)
                .one_verse
                .translations
                .approved
