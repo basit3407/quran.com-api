@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qiraat Matrix Viewer</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <style>
+        @font-face {
+            font-family: 'UthmanicHafs';
+            src: url('https://verses.quran.foundation/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2') format('woff2'),
+                url('https://verses.quran.foundation/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.ttf') format('truetype');
+            font-display: swap;
+        }
+
+        :root {
+            --arabic-font: 'UthmanicHafs', 'Traditional Arabic', 'Arial Unicode MS', serif;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --accent-color: #667eea;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .main-container {
+            max-width: 1400px;
+        }
+
+        .header-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .header-gradient {
+            background: var(--primary-gradient);
+            padding: 2rem;
+            color: white;
+        }
+
+        .header-gradient h1 {
+            font-weight: 700;
+            margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-gradient p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.95;
+            font-size: 1rem;
+        }
+
+        .verse-text {
+            font-size: 2rem;
+            font-family: var(--arabic-font);
+            direction: rtl;
+            text-align: right;
+            line-height: 2.2;
+            color: #2d3748;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            border-radius: 0.75rem;
+            border-right: 5px solid var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .verse-label {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* Enhanced Controls */
+        .controls-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--accent-color);
+            color: var(--accent-color);
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        /* Juncture Container */
+        .juncture-card {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .juncture-card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .juncture-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 1.25rem 1.5rem;
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        .badge-cross-verse {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .juncture-verse-preview {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff4d6 100%);
+            border: 2px solid #ffd966;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin: 1.5rem;
+        }
+
+        .segment-words {
+            font-size: 1.75rem;
+            font-family: var(--arabic-font);
+            direction: rtl;
+            text-align: right;
+            line-height: 2.2;
+            color: #495057;
+        }
+
+        .segment-words .word {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            margin: 0 0.25rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .segment-words .word.highlighted {
+            background: linear-gradient(135deg, var(--highlight-color, #ffd966) 0%, var(--highlight-color-light, #ffe699) 100%);
+            color: #1a1a1a;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(255, 217, 102, 0.3);
+            padding: 0.4rem 0.8rem;
+            transform: scale(1.05);
+        }
+
+        .segment-words .word.dimmed {
+            opacity: 0.35;
+        }
+
+        /* Matrix Table Styles */
+        .table-responsive {
+            padding: 1.5rem;
+            background: white;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            border: 1px solid #dee2e6;
+            padding: 0.75rem;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .header-row1 td {
+            padding: 0;
+            border: none;
+        }
+
+        .reading-content-row td {
+            text-align: left;
+            padding: 1.25rem;
+            line-height: 1.8;
+            border-left: none !important;
+            border-right: none !important;
+        }
+
+        .reading-arabic {
+            font-size: 1.75rem;
+            font-family: var(--arabic-font);
+            direction: rtl;
+            display: inline-block;
+            margin-right: 1.5rem;
+            font-weight: normal;
+            line-height: 2;
+            color: #2d3748;
+        }
+
+        .reading-transliteration {
+            font-style: italic;
+            color: #6c757d;
+            margin-right: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .reading-translation {
+            color: #495057;
+            font-size: 0.95rem;
+        }
+
+        .reading-notes {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: #6c757d;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-left: 3px solid var(--accent-color);
+            border-radius: 0.25rem;
+        }
+
+        .commentary-row td {
+            text-align: left;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%);
+            font-size: 0.95rem;
+            line-height: 1.8;
+            border-left: none !important;
+            border-right: none !important;
+            border-top: 3px solid #ffc107 !important;
+            font-style: italic;
+        }
+
+        /* Status Messages */
+        #connectionStatus {
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert {
+            border-radius: 0.75rem;
+            border: none;
+            padding: 1.25rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            color: #856404;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c2c7 100%);
+            color: #842029;
+        }
+
+        /* Meta Info */
+        .meta-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-top: 2rem;
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .meta-card strong {
+            color: var(--accent-color);
+        }
+
+        /* Loading Animation */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-gradient h1 {
+                font-size: 1.5rem;
+            }
+
+            .verse-text {
+                font-size: 1.5rem;
+                padding: 1rem;
+            }
+
+            .segment-words {
+                font-size: 1.25rem;
+            }
+
+            .reading-arabic {
+                font-size: 1.25rem;
+            }
+
+            .table-responsive {
+                padding: 0.75rem;
+            }
+
+            .btn-group-vertical {
+                width: 100%;
+            }
+
+            .btn-group-vertical .btn {
+                width: 100%;
+            }
+        }
+
+        /* Custom scrollbar */
+        .table-responsive::-webkit-scrollbar {
+            height: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container main-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="header-gradient">
+                <h1>
+                    <i class="bi bi-book"></i>
+                    Qiraat Matrix Viewer
+                </h1>
+                <p class="mb-0">View Quranic reading variations (Qira'at) across different readers and transmitters</p>
+            </div>
+
+            <!-- Connection Status Alert -->
+            <div id="connectionStatus" class="m-3" style="display: none;"></div>
+
+            <!-- Controls -->
+            <div class="controls-card m-3">
+                <!-- Settings Toggle -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">
+                        <i class="bi bi-funnel me-2"></i>Search & Filters
+                    </h6>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#apiSettings" aria-expanded="false">
+                        <i class="bi bi-gear me-1"></i>API Settings
+                    </button>
+                </div>
+
+                <!-- Collapsible API Settings -->
+                <div class="collapse mb-3" id="apiSettings">
+                    <div class="card card-body bg-light">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="apiBaseUrl" class="form-label small fw-bold">
+                                    <i class="bi bi-server me-1"></i>API Base URL
+                                </label>
+                                <select class="form-select form-select-sm" id="apiBaseUrl" onchange="updateApiBase()">
+                                    <option value="auto">Auto-detect</option>
+                                    <option value="http://localhost:3020">localhost:3020</option>
+                                    <option value="http://localhost:3000">localhost:3000</option>
+                                    <option value="https://api.quran.com">api.quran.com (Production)</option>
+                                    <option value="custom">Custom URL...</option>
+                                </select>
+                                <input type="text" class="form-control form-control-sm mt-2" id="customApiUrl"
+                                    placeholder="Enter custom URL" style="display: none;">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="textField" class="form-label small fw-bold">
+                                    <i class="bi bi-file-text me-1"></i>Text Field
+                                </label>
+                                <select class="form-select form-select-sm" id="textField">
+                                    <option value="text_qpc_hafs" selected>QPC Hafs (Madani)</option>
+                                    <option value="text_uthmani">Uthmani</option>
+                                    <option value="text_imlaei">Imlaei</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Arabic script variant</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="languageCode" class="form-label small fw-bold">
+                                    <i class="bi bi-translate me-1"></i>Language
+                                </label>
+                                <select class="form-select form-select-sm" id="languageCode">
+                                    <option value="en" selected>English</option>
+                                    <option value="ar">Arabic</option>
+                                    <option value="ur">Urdu</option>
+                                    <option value="id">Indonesian</option>
+                                    <option value="tr">Turkish</option>
+                                    <option value="fr">French</option>
+                                    <option value="de">German</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Translation language</small>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Current API:</strong> <code id="currentApiUrl">...</code>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Search Controls -->
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="verseInput"
+                                placeholder="Enter verse key (e.g., 15:8)" value="15:8">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="btn-group flex-wrap" role="group">
+                            <button type="button" class="btn btn-primary" onclick="loadMatrix()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Load Verse
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="loadVerse('8:65')">
+                                Anfal 65-66
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="loadVerse('10:35')">
+                                Yunus 10:35
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="loadVerse('12:12')">
+                                Yusuf 12:12
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="loadVerse('18:96')">
+                                Kahf 18:96
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div id="content"></div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // API Configuration - Dynamic
+        let API_BASE = window.location.protocol === 'file:'
+            ? 'http://localhost:3020'
+            : window.location.origin;
+
+        // Global data from API
+        let allReaders = [];
+        let allTransmitters = [];
+        let readerById = {};
+        let transmitterById = {};
+        let transmittersByReaderId = {};
+        let allVerses = {}; // Map of verse_key -> verse data
+
+        /**
+         * Get current API base URL from settings
+         */
+        function getApiBase() {
+            const selector = document.getElementById('apiBaseUrl');
+            const customInput = document.getElementById('customApiUrl');
+
+            if (!selector) return API_BASE;
+
+            const selected = selector.value;
+            if (selected === 'auto') {
+                return window.location.protocol === 'file:' ? 'http://localhost:3020' : window.location.origin;
+            } else if (selected === 'custom') {
+                return customInput.value.trim() || API_BASE;
+            } else {
+                return selected;
+            }
+        }
+
+        /**
+         * Get API parameters from UI
+         */
+        function getApiParams() {
+            const textField = document.getElementById('textField')?.value || 'text_qpc_hafs';
+            const language = document.getElementById('languageCode')?.value || 'en';
+
+            const params = new URLSearchParams();
+            params.append('text_field', textField);
+            if (language && language !== 'en') {
+                params.append('language', language);
+            }
+
+            return params.toString();
+        }
+
+        /**
+         * Build full API URL with parameters
+         */
+        function buildApiUrl(endpoint) {
+            const base = getApiBase();
+            const params = getApiParams();
+            return `${base}${endpoint}${params ? '?' + params : ''}`;
+        }
+
+        /**
+         * Update API base when selector changes
+         */
+        function updateApiBase() {
+            const selector = document.getElementById('apiBaseUrl');
+            const customInput = document.getElementById('customApiUrl');
+
+            if (selector.value === 'custom') {
+                customInput.style.display = 'block';
+            } else {
+                customInput.style.display = 'none';
+            }
+
+            updateCurrentApiDisplay();
+        }
+
+        /**
+         * Update the display of current API URL
+         */
+        function updateCurrentApiDisplay() {
+            const display = document.getElementById('currentApiUrl');
+            if (display) {
+                const base = getApiBase();
+                const params = getApiParams();
+                display.textContent = `${base}/api/qdc/qiraat/matrix/by_verse/{verse}${params ? '?' + params : ''}`;
+            }
+        }
+
+        function loadVerse(verseKey) {
+            document.getElementById('verseInput').value = verseKey;
+            loadMatrix();
+        }
+
+        async function loadMatrix() {
+            const verseKey = document.getElementById('verseInput').value.trim();
+            if (!verseKey) {
+                showError('Please enter a verse key (e.g., 15:8)');
+                return;
+            }
+            showLoading();
+            updateCurrentApiDisplay();
+
+            try {
+                const apiUrl = buildApiUrl(`/api/qdc/qiraat/matrix/by_verse/${verseKey}`);
+                console.log('Fetching from:', apiUrl);
+
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error?.message || 'Failed to load data');
+                }
+                hideConnectionWarning();
+                buildLookups(data);
+
+                // Store the main verse
+                allVerses = {};
+                if (data.verse) {
+                    allVerses[data.verse.verse_key] = data.verse;
+                }
+
+                // Fetch additional verses for cross-verse junctures
+                await fetchCrossVerseData(data);
+
+                renderMatrix(data);
+            } catch (error) {
+                if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                    showConnectionError();
+                } else {
+                    showError(error.message);
+                }
+                console.error('Error loading matrix:', error);
+            }
+        }
+
+        /**
+         * Fetch additional verses needed for cross-verse junctures
+         */
+        async function fetchCrossVerseData(data) {
+            const junctures = data.junctures || [];
+            const neededVerseKeys = new Set();
+
+            // Collect all unique verse keys from cross-verse junctures
+            junctures.forEach(juncture => {
+                if (juncture.cross_verse) {
+                    // Get verse keys from segments
+                    const segments = juncture.segments || [];
+                    segments.forEach(segment => {
+                        if (segment.verse_key && !allVerses[segment.verse_key]) {
+                            neededVerseKeys.add(segment.verse_key);
+                        }
+                    });
+
+                    // Also parse verse_range if available (e.g., "8:65-66" or "8:65-8:66")
+                    const verseRange = juncture.verse_range || '';
+                    const rangeVerses = parseVerseRange(verseRange);
+                    rangeVerses.forEach(vk => {
+                        if (!allVerses[vk]) {
+                            neededVerseKeys.add(vk);
+                        }
+                    });
+                }
+            });
+
+            // Fetch all needed verses in parallel
+            const fetchPromises = Array.from(neededVerseKeys).map(async (verseKey) => {
+                try {
+                    const textFieldParam = document.getElementById('textField')?.value || 'text_qpc_hafs';
+                    const apiUrl = `${getApiBase()}/api/qdc/verses/by_key/${verseKey}?fields=${textFieldParam}`;
+                    const response = await fetch(apiUrl);
+                    if (response.ok) {
+                        const verseData = await response.json();
+                        if (verseData.verse) {
+                            allVerses[verseKey] = verseData.verse;
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Could not fetch verse ${verseKey}:`, e);
+                }
+            });
+
+            await Promise.all(fetchPromises);
+        }
+
+        /**
+         * Parse a verse range string into individual verse keys
+         * Handles formats like: "8:65-66", "8:65-8:66", "8:65"
+         */
+        function parseVerseRange(rangeStr) {
+            if (!rangeStr) return [];
+
+            const verses = [];
+
+            // Try format "surah:start-end" (e.g., "8:65-66")
+            const singleSurahMatch = rangeStr.match(/^(\d+):(\d+)-(\d+)$/);
+            if (singleSurahMatch) {
+                const surah = parseInt(singleSurahMatch[1]);
+                const start = parseInt(singleSurahMatch[2]);
+                const end = parseInt(singleSurahMatch[3]);
+                for (let i = start; i <= end; i++) {
+                    verses.push(`${surah}:${i}`);
+                }
+                return verses;
+            }
+
+            // Try format "surah:verse-surah:verse" (e.g., "8:65-8:66")
+            const crossSurahMatch = rangeStr.match(/^(\d+):(\d+)-(\d+):(\d+)$/);
+            if (crossSurahMatch) {
+                // For simplicity, just return both endpoints
+                verses.push(`${crossSurahMatch[1]}:${crossSurahMatch[2]}`);
+                verses.push(`${crossSurahMatch[3]}:${crossSurahMatch[4]}`);
+                return verses;
+            }
+
+            // Try single verse "surah:verse"
+            const singleMatch = rangeStr.match(/^(\d+):(\d+)$/);
+            if (singleMatch) {
+                verses.push(rangeStr);
+            }
+
+            return verses;
+        }
+
+        function buildLookups(data) {
+            allReaders = data.readers || [];
+            allTransmitters = data.transmitters || [];
+            readerById = {};
+            transmitterById = {};
+            transmittersByReaderId = {};
+
+            allReaders.forEach(r => {
+                readerById[r.id] = r;
+            });
+
+            allTransmitters.forEach(t => {
+                transmitterById[t.id] = t;
+                if (!transmittersByReaderId[t.reader_id]) {
+                    transmittersByReaderId[t.reader_id] = [];
+                }
+                transmittersByReaderId[t.reader_id].push(t);
+            });
+
+            // Sort transmitters by position
+            Object.values(transmittersByReaderId).forEach(arr => {
+                arr.sort((a, b) => a.position - b.position);
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('content').innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="fw-bold">Loading matrix data...</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById('content').innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function showConnectionError() {
+            const status = document.getElementById('connectionStatus');
+            status.style.display = 'block';
+            status.innerHTML = `
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Connection Error
+                    </h5>
+                    <p class="mb-2">Cannot connect to API server at <code>${getApiBase()}</code></p>
+                    <hr>
+                    <p class="mb-0 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Please make sure the Rails server is running: <code>rails s -p 3020</code>
+                    </p>
+                </div>
+            `;
+            showError('Cannot connect to API server. Please check if the server is running.');
+        }
+
+        function hideConnectionWarning() {
+            document.getElementById('connectionStatus').style.display = 'none';
+        }
+
+        /**
+         * Build column structure dynamically from API data.
+         *
+         * Layout:
+         * - Always render the 10 canonical readers as the base columns (sorted by `reader.position`).
+         * - If a reader has transmitter-level differences in this juncture, split that reader into
+         *   one column per transmitter (row 1 shows the reader name; row 2 shows transmitters).
+         */
+        function buildColumnStructure(splits) {
+            const readersSorted = [...allReaders].sort((a, b) => (a.position || 0) - (b.position || 0));
+
+            const columns = readersSorted.map(reader => {
+                const hasSplit = !!splits[reader.id];
+                const transmitters = (transmittersByReaderId[reader.id] || []).slice();
+
+                return {
+                    reader,
+                    splitMode: hasSplit && transmitters.length > 0,
+                    transmitters
+                };
+            });
+
+            const totalColumns = columns.reduce((acc, col) => acc + (col.splitMode ? col.transmitters.length : 1), 0);
+            return { columns, totalColumns };
+        }
+
+        /**
+         * Detect which readers have transmitter-level splits
+         * Returns a map of reader_id -> true
+         */
+        function detectTransmitterSplits(readings) {
+            const splits = {};
+            readings.forEach(reading => {
+                const cells = reading.matrix?.cells || [];
+                cells.forEach(cell => {
+                    if (cell.transmitter_id !== null) {
+                        splits[cell.reader_id] = true;
+                    }
+                });
+            });
+            return splits;
+        }
+
+        /**
+         * Build attribution map using reader/transmitter IDs
+         * Returns: { readerId: true, transmitterId: true, ... }
+         */
+        function buildAttributionMap(reading, splits) {
+            const readerAttribution = {};  // reader_id -> true
+            const transmitterAttribution = {};  // transmitter_id -> true
+
+            const cells = reading.matrix?.cells || [];
+            cells.forEach(cell => {
+                if (cell.transmitter_id !== null) {
+                    // Specific transmitter
+                    transmitterAttribution[cell.transmitter_id] = true;
+                } else {
+                    // Reader-level (all transmitters)
+                    readerAttribution[cell.reader_id] = true;
+
+                    // If this reader has splits, mark all transmitters
+                    if (splits[cell.reader_id]) {
+                        const transmitters = transmittersByReaderId[cell.reader_id] || [];
+                        transmitters.forEach(t => {
+                            transmitterAttribution[t.id] = true;
+                        });
+                    }
+                }
+            });
+
+            return { readerAttribution, transmitterAttribution };
+        }
+
+        /**
+         * Optional: if the API ever provides a per-cell color (e.g. cell.color), we can honor it.
+         * This lets the backend decide the exact palette per juncture/reader/transmitter.
+         */
+        function buildCellColorMap(reading) {
+            const readerColor = {};      // reader_id -> color
+            const transmitterColor = {}; // transmitter_id -> color
+
+            const cells = reading.matrix?.cells || [];
+            cells.forEach(cell => {
+                const c = cell?.color;
+                if (!c) return;
+
+                if (cell.transmitter_id !== null && cell.transmitter_id !== undefined) {
+                    transmitterColor[cell.transmitter_id] = c;
+                } else if (cell.reader_id !== null && cell.reader_id !== undefined) {
+                    readerColor[cell.reader_id] = c;
+                }
+            });
+
+            return { readerColor, transmitterColor };
+        }
+
+        function isReaderAttributed(readerId, readerAttribution, transmitterAttribution) {
+            if (readerAttribution[readerId]) return true;
+
+            // If the API used transmitter-only attributions for a reader and we didn't split this reader,
+            // treat any transmitter attribution under that reader as reader-attributed.
+            const transmitters = transmittersByReaderId[readerId] || [];
+            return transmitters.some(t => transmitterAttribution[t.id]);
+        }
+
+        /**
+         * Parse verse text into individual words
+         * Returns array of word objects: { text, position }
+         */
+        function parseVerseWords(verseText) {
+            if (!verseText) return [];
+            // Split on whitespace, keeping track of positions (1-based for Quran word positions)
+            return verseText.split(/\s+/).filter(w => w.trim()).map((text, index) => ({
+                text: text.trim(),
+                position: index + 1
+            }));
+        }
+
+        /**
+         * Get highlighted word positions from segments, grouped by verse_key
+         * Returns: Map of verse_key -> Set of positions
+         * Segments use: { start_word_position, end_word_position, verse_key }
+         */
+        function getHighlightedPositionsByVerse(segments) {
+            const positionsByVerse = new Map();
+
+            if (!segments || segments.length === 0) return positionsByVerse;
+
+            segments.forEach(segment => {
+                const verseKey = segment.verse_key || '_default_';
+
+                if (!positionsByVerse.has(verseKey)) {
+                    positionsByVerse.set(verseKey, new Set());
+                }
+                const positions = positionsByVerse.get(verseKey);
+
+                // Handle start_word_position / end_word_position (API format)
+                if (segment.start_word_position !== undefined && segment.end_word_position !== undefined) {
+                    for (let i = segment.start_word_position; i <= segment.end_word_position; i++) {
+                        positions.add(i);
+                    }
+                }
+                // Handle word range (word_from, word_to) - legacy
+                else if (segment.word_from !== undefined && segment.word_to !== undefined) {
+                    for (let i = segment.word_from; i <= segment.word_to; i++) {
+                        positions.add(i);
+                    }
+                }
+                // Handle single word position
+                else if (segment.word_position !== undefined) {
+                    positions.add(segment.word_position);
+                }
+                // Handle words array
+                else if (Array.isArray(segment.words)) {
+                    segment.words.forEach(w => {
+                        if (typeof w === 'number') positions.add(w);
+                        else if (w.position) positions.add(w.position);
+                    });
+                }
+                // Handle word_positions array
+                else if (Array.isArray(segment.word_positions)) {
+                    segment.word_positions.forEach(p => positions.add(p));
+                }
+            });
+
+            return positionsByVerse;
+        }
+
+        /**
+         * Render verse text with highlighted segments for a single verse
+         */
+        function renderHighlightedVerseText(verseText, highlightedPositions, highlightColor, verseKey) {
+            const words = parseVerseWords(verseText);
+
+            if (words.length === 0) return '';
+
+            // Calculate lighter color for gradient
+            const lightColor = highlightColor ? lightenHex(highlightColor, 0.4) : '#ffe699';
+            const mainColor = highlightColor || '#ffd966';
+
+            const hasHighlights = highlightedPositions && highlightedPositions.size > 0;
+
+            const wordSpans = words.map(word => {
+                const isHighlighted = hasHighlights && highlightedPositions.has(word.position);
+                if (isHighlighted) {
+                    return `<span class="word highlighted" style="--highlight-color: ${mainColor}; --highlight-color-light: ${lightColor};">${word.text}</span>`;
+                } else if (hasHighlights) {
+                    return `<span class="word dimmed">${word.text}</span>`;
+                } else {
+                    return `<span class="word">${word.text}</span>`;
+                }
+            });
+
+            const verseLabel = verseKey ? `<span style="font-size: 11px; color: #666; margin-left: 8px;">(${verseKey})</span>` : '';
+            return `<div class="segment-words">${wordSpans.join(' ')}${verseLabel}</div>`;
+        }
+
+        /**
+         * Render highlighted segments for a juncture
+         * Shows each segment's text with its verse reference
+         */
+        function renderHighlightedSegments(segments, verseTexts, highlightColor) {
+            if (!segments || segments.length === 0) return '';
+
+            // Calculate lighter color for gradient
+            const lightColor = highlightColor ? lightenHex(highlightColor, 0.4) : '#ffe699';
+            const mainColor = highlightColor || '#ffd966';
+
+            let html = '<div class="segments-container" style="direction: rtl; text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px;">';
+
+            segments.forEach((segment, index) => {
+                // Use generic 'text' field first, fallback to text_uthmani for backward compatibility
+                const segmentText = segment.text || segment.text_uthmani || '';
+                const verseKey = segment.verse_key || '';
+                const wordRange = segment.start_word_position && segment.end_word_position
+                    ? `words ${segment.start_word_position}-${segment.end_word_position}`
+                    : '';
+
+                if (segmentText) {
+                    html += `<div class="segment-item" style="display: inline-flex; align-items: center; flex-direction: row-reverse; margin: 4px 0;">`;
+                    if (index < segments.length - 1) {
+                        html += `<span style="margin: 0 12px; color: #ccc;">.....</span>`;
+                    }
+                    html += `<span style="font-size: 11px; color: #666; margin-right: 8px; white-space: nowrap; direction: ltr;">(${verseKey}${wordRange ? ', ' + wordRange : ''})</span>`;
+                    html += `<span class="word highlighted" style="--highlight-color: ${mainColor}; --highlight-color-light: ${lightColor}; font-size: 26px; font-family: 'UthmanicHafs', 'Traditional Arabic', 'Arial Unicode MS', serif; direction: rtl; line-height: 1.8;">${segmentText}</span>`;
+                    html += `</div>`;
+                }
+            });
+
+            html += '</div>';
+            return html;
+        }
+
+        function normalizeReadingColor(reading, fallback) {
+            const c = reading?.color;
+            if (typeof c === 'string' && c.trim().length > 0) return c;
+            return fallback;
+        }
+
+        function clamp01(n) {
+            if (Number.isNaN(n)) return 0;
+            return Math.max(0, Math.min(1, n));
+        }
+
+        function hexToRgb(hex) {
+            if (typeof hex !== 'string') return null;
+            const h = hex.trim();
+            const m = /^#?([0-9a-fA-F]{6})$/.exec(h);
+            if (!m) return null;
+            const int = parseInt(m[1], 16);
+            return {
+                r: (int >> 16) & 255,
+                g: (int >> 8) & 255,
+                b: int & 255
+            };
+        }
+
+        function rgbToHex({ r, g, b }) {
+            const toHex = (v) => {
+                const h = Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+                return h;
+            };
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+
+        function mixHex(a, b, t) {
+            const ca = hexToRgb(a);
+            const cb = hexToRgb(b);
+            if (!ca || !cb) return a;
+            const tt = clamp01(t);
+            return rgbToHex({
+                r: ca.r + (cb.r - ca.r) * tt,
+                g: ca.g + (cb.g - ca.g) * tt,
+                b: ca.b + (cb.b - ca.b) * tt
+            });
+        }
+
+        function lightenHex(hex, amount) {
+            return mixHex(hex, '#ffffff', amount);
+        }
+
+        /**
+         * Build a map of reader ID -> color and transmitter ID -> color from readings
+         * The color comes from the reading that each reader/transmitter is attributed to
+         */
+        function buildHeaderColorMap(readings) {
+            const readerColorMap = {};
+            const transmitterColorMap = {};
+
+            readings.forEach(reading => {
+                const color = normalizeReadingColor(reading, '#e0e0e0');
+                const cells = reading.matrix?.cells || [];
+
+                cells.forEach(cell => {
+                    if (cell.transmitter_id) {
+                        transmitterColorMap[cell.transmitter_id] = color;
+                    }
+                    if (cell.reader_id) {
+                        readerColorMap[cell.reader_id] = color;
+                    }
+                });
+            });
+
+            return { readerColorMap, transmitterColorMap };
+        }
+
+        function columnSpanFor(col) {
+            return col.splitMode ? col.transmitters.length : 1;
+        }
+
+        function splitColumnsIntoHalves(structure) {
+            const cols = structure.columns || [];
+            const first = [];
+            const second = [];
+
+            cols.forEach(col => {
+                const pos = Number(col?.reader?.position) || 0;
+                if (pos > 0 && pos <= 5) first.push(col);
+                else second.push(col);
+            });
+
+            const firstSpan = first.reduce((acc, col) => acc + columnSpanFor(col), 0);
+            const secondSpan = structure.totalColumns - firstSpan;
+            return { first, second, firstSpan, secondSpan };
+        }
+
+        /**
+         * Group readings by shared translation IDs AND explanation IDs
+         * Returns array of groups: { groupKey, translationData, explanationData, readings, firstColor }
+         *
+         * Logic:
+         * - Readings with the same translation ID(s) AND explanation ID(s) are grouped together
+         * - Readings without translations or explanations get their own unique group
+         */
+        function groupReadingsByExplanation(readings) {
+            const groups = [];
+            const groupKeyToGroup = {};
+
+            readings.forEach(reading => {
+                const translations = reading.translations || [];
+                const explanations = reading.explanations || [];
+
+                // Create composite grouping key for BOTH translation and explanation
+                const transPart = translations.length > 0
+                    ? 'trans:' + translations.map(t => t.id || '').sort().join(',')
+                    : 'trans:none';
+                const explPart = explanations.length > 0
+                    ? 'expl:' + explanations.map(e => e.id || '').sort().join(',')
+                    : 'expl:none';
+
+                let groupKey;
+                let groupData = { translations: translations.length > 0 ? translations : null, explanations: explanations.length > 0 ? explanations : null };
+
+                // If either is shared, group together; if neither, individual reading
+                if (translations.length > 0 || explanations.length > 0) {
+                    groupKey = `${transPart}|${explPart}`;
+                } else {
+                    groupKey = `__reading_${reading.id}__`;
+                }
+
+                if (!groupKeyToGroup[groupKey]) {
+                    groupKeyToGroup[groupKey] = {
+                        groupKey,
+                        explanationData: groupData.explanations,
+                        translationData: groupData.translations,
+                        readings: [],
+                        firstColor: null
+                    };
+                    groups.push(groupKeyToGroup[groupKey]);
+                }
+
+                const group = groupKeyToGroup[groupKey];
+                group.readings.push(reading);
+                if (!group.firstColor) {
+                    group.firstColor = normalizeReadingColor(reading, '#f5f5f5');
+                }
+            });
+
+            return groups;
+        }
+
+
+
+        /**
+         * MAIN RENDER FUNCTION
+         */
+        function renderMatrix(data) {
+            const verse = data.verse;
+            const junctures = data.junctures || [];
+            const direction = data.meta?.direction || 'ltr';
+
+            // Collect all verses to display (main verse + cross-verse verses)
+            const versesToShow = [verse];
+
+            // Check if any juncture is cross-verse and add those verses
+            junctures.forEach(juncture => {
+                if (juncture.cross_verse) {
+                    const rangeVerses = parseVerseRange(juncture.verse_range || '');
+                    rangeVerses.forEach(vk => {
+                        if (allVerses[vk] && !versesToShow.find(v => v.verse_key === vk)) {
+                            versesToShow.push(allVerses[vk]);
+                        }
+                    });
+
+                    // Also check segments for additional verse keys
+                    const segments = juncture.segments || [];
+                    segments.forEach(segment => {
+                        const vk = segment.verse_key;
+                        if (vk && allVerses[vk] && !versesToShow.find(v => v.verse_key === vk)) {
+                            versesToShow.push(allVerses[vk]);
+                        }
+                    });
+                }
+            });
+
+            // Sort verses by their key
+            versesToShow.sort((a, b) => {
+                const [aSurah, aVerse] = (a.verse_key || '').split(':').map(Number);
+                const [bSurah, bVerse] = (b.verse_key || '').split(':').map(Number);
+                if (aSurah !== bSurah) return aSurah - bSurah;
+                return aVerse - bVerse;
+            });
+
+            let html = `
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title mb-3">
+                            <i class="bi bi-bookmark-fill text-primary me-2"></i>
+                            Verse${versesToShow.length > 1 ? 's' : ''} ${versesToShow.map(v => v.verse_key).join(' - ')}
+                        </h3>
+                        ${versesToShow.map(v => `
+                            <div class="mb-3">
+                                <span class="verse-label">${v.verse_key}</span>
+                                <div class="verse-text">
+                                    ${v.text || v.text_qpc_hafs || v.text_uthmani || ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            junctures.forEach((juncture) => {
+                const readings = juncture.readings || [];
+                const splits = detectTransmitterSplits(readings);
+                const structure = buildColumnStructure(splits);
+
+                html += '<div class="juncture-card">';
+
+                // Juncture header with cross-verse indicator
+                const verseRange = juncture.verse_range || juncture.verse_key || '';
+                const crossVerse = juncture.cross_verse;
+                const segments = juncture.segments || [];
+
+                html += `<div class="juncture-header d-flex align-items-center gap-2 flex-wrap">`;
+                if (crossVerse) {
+                    html += `<span class="badge badge-cross-verse">
+                        <i class="bi bi-layers-fill me-1"></i>CROSS-VERSE
+                    </span>`;
+                }
+                html += `<strong class="fs-5">${verseRange}</strong>`;
+                if (segments.length > 0) {
+                    html += `<span class="badge bg-secondary">${segments.length} segment${segments.length > 1 ? 's' : ''}</span>`;
+                }
+                html += `</div>`;
+
+                // Render verse with highlighted segments for this juncture
+                const primaryColor = readings.length > 0 ? normalizeReadingColor(readings[0], '#ffd966') : '#ffd966';
+                if (segments.length > 0) {
+                    // Build verseTexts map - use generic 'text' field first, with fallbacks
+                    const verseTexts = {};
+                    const verseText = verse.text || verse.text_qpc_hafs || verse.text_uthmani;
+                    if (verseText) {
+                        verseTexts[verse.verse_key] = verseText;
+                    }
+
+                    html += `<div class="juncture-verse-preview">`;
+                    html += renderHighlightedSegments(segments, verseTexts, primaryColor);
+                    html += `</div>`;
+                }
+
+                html += '<div class="table-responsive"><table class="matrix-table">';
+
+                // Build color map from readings (colors come from database)
+                const headerColors = buildHeaderColorMap(readings);
+
+                // Header rows with dynamic colors
+                html += renderHeaderRows(structure, headerColors);
+
+                // Group readings by shared translation or explanation
+                const groups = groupReadingsByExplanation(readings);
+
+                // Render each group - translation cell spans content rows of the group
+                groups.forEach(group => {
+                    const groupReadings = group.readings;
+                    const explanationData = group.explanationData;
+                    const translationData = group.translationData;
+                    const hasSharedExplanation = explanationData && explanationData.length > 0;
+
+                    // Calculate total rows for translation cell rowspan:
+                    // - Reading rows: groupReadings.length
+                    // - Explanation row: +1 ONLY if shared (individual explanations render inline, not as separate rows)
+                    const totalRowsForGroup = groupReadings.length + (hasSharedExplanation ? 1 : 0);
+
+                    groupReadings.forEach((reading, index) => {
+                        const color = normalizeReadingColor(reading, '#f5f5f5');
+                        const isFirstInGroup = index === 0;
+                        const isLastInGroup = index === groupReadings.length - 1;
+
+                        // Render reading row, with translation cell on the first content row
+                        html += renderReadingRowsWithTranslation(
+                            reading,
+                            structure,
+                            splits,
+                            color,
+                            translationData,
+                            explanationData,
+                            isFirstInGroup,
+                            isLastInGroup,
+                            totalRowsForGroup,
+                            group.firstColor,
+                            direction,
+                            hasSharedExplanation
+                        );
+                    });
+
+                    // After all readings in group, render shared explanation row if present
+                    if (hasSharedExplanation) {
+                        const explText = explanationData.map(e => e.text || '').filter(t => t).join('<br>');
+                        if (explText) {
+                            html += `<tr class="reading-content-row" style="background-color: ${group.firstColor};">
+                                <td colspan="${structure.totalColumns - 1}" style="padding: 10px 20px; vertical-align: top;">
+                                    <div class="reading-notes" dir="${direction}">${explText}</div>
+                                </td>
+                            </tr>`;
+                        }
+                    }
+                });
+
+                // Commentary (spans all columns)
+                const commentary = juncture.commentary || juncture.combined_translation;
+                if (commentary) {
+                    html += `<tr class="commentary-row"><td colspan="${structure.totalColumns}" dir="${direction}">
+                        <i class="bi bi-chat-square-quote-fill text-warning me-2"></i>
+                        ${commentary}
+                    </td></tr>`;
+                }
+
+                html += '</table></div></div>';
+            });
+
+            // Meta info
+            if (data.meta) {
+                html += `
+                    <div class="meta-card">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <i class="bi bi-grid-3x3-gap-fill me-2"></i>
+                                <strong>Total Junctures:</strong> ${data.meta.total_junctures || junctures.length}
+                            </div>
+                            <div class="col-md-3">
+                                <i class="bi bi-book-half me-2"></i>
+                                <strong>Total Readings:</strong> ${data.meta.total_readings || 0}
+                            </div>
+                            <div class="col-md-3">
+                                <i class="bi bi-translate me-2"></i>
+                                <strong>Language:</strong> ${data.meta.language || 'en'}
+                            </div>
+                            <div class="col-md-3">
+                                <i class="bi bi-clock me-2"></i>
+                                <strong>Generated:</strong> ${new Date(data.meta.generated_at).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        /**
+         * Render header rows.
+         * Requirement:
+         * - Reader headers are UI-only colored per qāriʾ (to visually differentiate columns)
+         * - Show 5 readers on the first header row, and the other 5 on the second
+         * - Preserve correct column alignment even when a reader is split into transmitters
+         */
+        function renderHeaderRows(structure, headerColors) {
+            let html = '';
+            const { readerColorMap, transmitterColorMap } = headerColors || { readerColorMap: {}, transmitterColorMap: {} };
+
+            // IMPORTANT UI NOTE:
+            // The matrix table can have >10 visual columns when a reader is split into transmitters.
+            // If we try to place "5 readers" on one <tr> and "other 5" on the next while keeping
+            // perfect column alignment, we inevitably get a huge blank offset.
+            // What you asked for (5 qārīs on the first row, other 5 on the second) is a VISUAL
+            // header requirement, not a column-alignment requirement — so we render it as a single
+            // colspan cell containing a 2x5 grid.
+
+            const cols = structure.columns || [];
+            const first5 = [];
+            const second5 = [];
+            cols.forEach(col => {
+                const pos = Number(col?.reader?.position) || 0;
+                if (pos > 0 && pos <= 5) first5.push(col);
+                else second5.push(col);
+            });
+
+            const renderQariGridRow = (colsToShow) => {
+                return colsToShow.map(col => {
+                    const r = col.reader || {};
+                    // Get color from reading attribution (database) - fallback to light gray
+                    const bg = readerColorMap[r.id] || '#e9ecef';
+                    const label = r.name || r.abbreviation || '';
+                    const subLabel = r.abbreviation && r.name ? ` <span style="font-weight: normal; opacity: 0.85;">(${r.abbreviation})</span>` : '';
+
+                    const tx = (col.splitMode ? (col.transmitters || []) : []).slice();
+                    const txHtml = tx.length > 0
+                        ? `
+                            <div style="display:grid; grid-template-columns: repeat(${tx.length}, 1fr); border-top:1px solid #dee2e6;">
+                                ${tx.map((t, idx) => {
+                            const tLabel = t?.name || t?.abbreviation || '';
+                            // Get transmitter color from reading attribution (database)
+                            const tBg = transmitterColorMap[t.id] || bg;
+                            const borderLeft = idx === 0 ? '' : 'border-left:1px solid #dee2e6;';
+                            return `<div style="padding:8px 6px; font-size:11px; font-weight:600; background:${tBg}; ${borderLeft}">${tLabel}</div>`;
+                        }).join('')}
+                            </div>
+                          `
+                        : '';
+
+                    return `
+                        <div style="background:${bg}; border:1px solid #dee2e6; text-align:center; font-weight:bold; font-size:12px; overflow:hidden; border-radius:0.5rem;">
+                            <div style="padding:12px 8px;">${label}${subLabel}</div>
+                            ${txHtml}
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            // Header row - only 10 Qaris (no separate explanation column header)
+            html += '<tr class="header-row1">';
+            html += `<td colspan="${structure.totalColumns}" style="padding:0;">`;
+            html += `
+                <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; padding:8px;">
+                    ${renderQariGridRow(first5)}
+                    ${renderQariGridRow(second5)}
+                </div>
+            `;
+            html += '</td></tr>';
+
+            return html;
+        }
+
+        /**
+         * Render a single reading row (NOT two rows - just one content row)
+         * - LEFT: Arabic text, transliteration, notes (with background color)
+         * - RIGHT: Translation (can span multiple readings when shared)
+         */
+        function renderReadingRowsWithTranslation(reading, structure, splits, color, translationData, explanationData, isFirstInGroup, isLastInGroup, totalRowsForGroup, groupColor, direction, hasSharedExplanation) {
+            let html = '';
+
+            // Single content row with background color
+            html += `<tr class="reading-content-row" style="background-color: ${color};">`;
+
+            // LEFT: Arabic + transliteration + notes (spans all Qari columns minus 1)
+            html += `<td colspan="${structure.totalColumns - 1}" style="padding: 15px 20px; vertical-align: top;">`;
+            // Use generic 'text' field first, fallback to text_uthmani for backward compatibility
+            html += `<span class="reading-arabic">${reading.text || reading.text_uthmani || ''}</span>`;
+            if (reading.transliteration) {
+                html += `<span class="reading-transliteration">${reading.transliteration}</span>`;
+            }
+            // Show reading-specific explanation/notes ONLY if NOT in a shared explanation group
+            if (!hasSharedExplanation && reading.explanation?.text) {
+                html += `<div class="reading-notes" dir="${direction}">${reading.explanation.text}</div>`;
+            }
+            html += '</td>';
+
+            // RIGHT: Translation cell (spans multiple readings when shared)
+            if (isFirstInGroup) {
+                let translationText = '';
+
+                // Priority: shared translations > individual translation
+                if (translationData && translationData.length > 0) {
+                    translationText = translationData.map(t => t.text || '').filter(t => t).join('<br>');
+                } else if (reading.translation) {
+                    translationText = reading.translation;
+                }
+
+                if (translationText) {
+                    html += `<td rowspan="${totalRowsForGroup}" style="background-color: ${groupColor}; vertical-align: middle; padding: 15px 20px; text-align: start; min-width: 200px; font-size: 0.95rem; line-height: 1.7; border-left: 3px solid var(--accent-color);" dir="${direction}">`;
+                    html += `<i class="bi bi-quote text-muted"></i> ${translationText.replace(/^"|"$/g, '')}`;
+                    html += '</td>';
+                } else {
+                    html += `<td rowspan="${totalRowsForGroup}" style="background-color: ${groupColor}; vertical-align: middle;"></td>`;
+                }
+            }
+
+            html += '</tr>';
+
+            return html;
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Update API display
+            updateCurrentApiDisplay();
+
+            // Add change listeners for API settings
+            const textFieldSelect = document.getElementById('textField');
+            const languageSelect = document.getElementById('languageCode');
+            const customUrlInput = document.getElementById('customApiUrl');
+
+            if (textFieldSelect) {
+                textFieldSelect.addEventListener('change', updateCurrentApiDisplay);
+            }
+            if (languageSelect) {
+                languageSelect.addEventListener('change', updateCurrentApiDisplay);
+            }
+            if (customUrlInput) {
+                customUrlInput.addEventListener('input', updateCurrentApiDisplay);
+            }
+
+            // Load initial data
+            loadMatrix();
+        });
+
+        document.getElementById('verseInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadMatrix();
+            }
+        });
+    </script>
+</body>
+
+</html>

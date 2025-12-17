@@ -1,0 +1,34 @@
+json.id reader.id
+json.name reader.name
+json.abbreviation reader.abbreviation
+json.death_year_hijri reader.death_year_hijri
+json.death_year_gregorian reader.death_year_gregorian
+json.position reader.position
+json.translated_name reader.translated_name_for(@language)
+
+# Only include transmitters if association is loaded
+if reader.association(:qiraat_transmitters).loaded?
+  json.transmitters do
+    json.array! reader.qiraat_transmitters.order(:position) do |t|
+      json.object! do
+        json.id t.id
+        json.name t.name
+        json.abbreviation t.abbreviation
+        json.is_primary t.is_primary
+      end
+    end
+  end
+end
+
+# Only include bio if localized_contents association is loaded
+if reader.association(:localized_contents).loaded?
+  bio = reader.localized_contents.find { |lc| lc.content_type == 'bio' && lc.language_id == @language.id }
+  if bio
+    json.bio do
+      json.object! do
+        json.text bio.text
+      end
+    end
+  end
+end
+

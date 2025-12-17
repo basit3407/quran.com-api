@@ -1,0 +1,55 @@
+json.object! do
+  json.juncture do
+    json.object! do
+      json.id @juncture.id
+      json.verse_key @juncture.verse_key
+      json.position @juncture.position
+      json.word_id @juncture.word_id
+      json.word_position @juncture.word_position
+      json.start_word_position @juncture.effective_start_word_position
+      json.end_word_position @juncture.effective_end_word_position
+      json.text_uthmani @juncture.juncture_text_uthmani
+      json.text_imlaei @juncture.juncture_text_imlaei
+      json.flags @juncture.flags if @juncture.flags.present?
+
+      # Explanation
+      explanation = @juncture.localized_contents.find_by(language: @language, content_type: 'explanation')
+      json.explanation explanation&.text if explanation
+
+      # Readings
+      json.readings do
+        json.array! @juncture.qiraat_readings.order(:position) do |reading|
+          json.object! do
+            json.id reading.id
+            json.text_uthmani reading.text_uthmani
+            json.text_imlaei reading.text_imlaei
+            json.grammatical_form reading.grammatical_form
+            json.root_letters reading.root_letters
+            json.color reading.color
+
+            translation_content = reading.localized_contents.find_by(language: @language, content_type: 'translation')
+            json.translation translation_content&.text if translation_content
+
+            transliteration_content = reading.localized_contents.find_by(language: @language, content_type: 'transliteration')
+            json.transliteration transliteration_content&.text if transliteration_content
+
+            # Shared explanations (from qiraat_reading_explanations)
+            explanations = reading.explanations_for(@language)
+            if explanations.present?
+              json.explanations do
+                json.array! explanations do |expl|
+                  json.object! do
+                    json.text expl[:text]
+                    json.source expl[:source]
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+
+      json.readings_count @juncture.qiraat_readings.count
+    end
+  end
+end

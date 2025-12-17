@@ -1,0 +1,18 @@
+json.object! do
+  json.reader do
+    json.object! do
+      json.partial! 'reader', reader: @reader
+
+      # Add bio for detailed view
+      bio_content = @reader.localized_contents.find_by(language: @language, content_type: 'bio')
+      if bio_content
+        json.bio do
+          json.object! do
+            json.text bio_content.text
+            json.short_text bio_content.short_text
+          end
+        end
+      end
+    end
+  end
+end

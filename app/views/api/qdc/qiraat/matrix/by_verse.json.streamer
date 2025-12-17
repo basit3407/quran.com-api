@@ -1,0 +1,363 @@
+json.object! do
+  text_field = @text_field || 'text_uthmani'
+
+  # Pre-cache English language lookup (avoid repeated queries)
+  english = Language.find_by(iso_code: 'en')
+  is_english = @language.iso_code == 'en'
+
+  json.verse do
+    json.object! do
+      json.verse_key @verse.verse_key
+      json.chapter_number @verse.chapter_id
+      json.verse_number @verse.verse_number
+      json.text @verse.send(text_field)
+      json.text_field text_field
+    end
+  end
+
+  json.readers do
+    json.array! @readers do |reader|
+      json.object! do
+        json.id reader.id
+        json.name reader.name
+        json.abbreviation reader.abbreviation
+        json.position reader.position
+      end
+    end
+  end
+
+  json.transmitters do
+    json.array! @transmitters do |transmitter|
+      json.object! do
+        json.id transmitter.id
+        json.name transmitter.name
+        json.abbreviation transmitter.abbreviation
+        json.reader_id transmitter.qiraat_reader_id
+        json.position transmitter.position
+        json.is_primary transmitter.is_primary
+      end
+    end
+  end
+
+  # Pre-compute total readings count to avoid N+1 in meta section
+  total_readings_count = 0
+
+  json.junctures do
+    json.array! @junctures do |juncture|
+      # Pre-cache readings from already-loaded association (use sort_by instead of .order to avoid DB query)
+      cached_readings = juncture.qiraat_readings.sort_by { |r| r.position || Float::INFINITY }
+      total_readings_count += cached_readings.size
+
+      # Pre-cache juncture's localized contents indexed by content_type and language_id
+      juncture_lc_cache = juncture.localized_contents.group_by { |lc| [lc.content_type, lc.language_id] }
+
+      # Pre-cache segments sorted by position (use already-loaded association)
+      cached_segments = juncture.qiraat_juncture_segments.sort_by { |s| s.position || Float::INFINITY }
+
+      # Determine which text field to use for words
+      text_method = case text_field.to_s.delete_prefix('text_')
+                    when 'imlaei' then :text_imlaei
+                    when 'qpc_hafs' then :text_qpc_hafs
+                    else :text_uthmani
+                    end
+
+      # BATCH LOAD: Collect all word ranges needed across all segments
+      word_ranges = cached_segments.filter_map do |seg|
+        start_pos = seg.start_word&.position
+        end_pos = seg.end_word&.position
+        next nil unless start_pos && end_pos
+        { verse_id: seg.verse_id, start_pos: start_pos, end_pos: end_pos }
+      end
+
+      # Build a single query to fetch all words needed (avoids N+1)
+      words_cache = {}
+      if word_ranges.any?
+        # Group by verse_id to build efficient OR conditions
+        ranges_by_verse = word_ranges.group_by { |r| r[:verse_id] }
+
+        # Build query conditions
+        conditions = ranges_by_verse.map do |verse_id, ranges|
+          min_pos = ranges.map { |r| r[:start_pos] }.min
+          max_pos = ranges.map { |r| r[:end_pos] }.max
+          "(verse_id = #{verse_id} AND position BETWEEN #{min_pos} AND #{max_pos})"
+        end.join(' OR ')
+
+        # Single query to fetch all words, indexed by [verse_id, position]
+        Word.where(conditions).order(:verse_id, :position).each do |word|
+          words_cache[[word.verse_id, word.position]] = word.send(text_method)
+        end
+      end
+
+      # Helper to get segment text from cache
+      compute_segment_text = ->(seg) {
+        start_pos = seg.start_word&.position
+        end_pos = seg.end_word&.position
+        return nil unless start_pos && end_pos
+
+        (start_pos..end_pos).map { |pos| words_cache[[seg.verse_id, pos]] }.compact.join(' ')
+      }
+
+      # Compute verse_key from cached segments (avoid model method that queries DB)
+      computed_verse_key = if cached_segments.empty?
+        nil
+      else
+        first_key = cached_segments.first.verse_key
+        last_key = cached_segments.last.verse_key
+        first_key == last_key ? first_key : "#{first_key}-#{last_key.split(':').last}"
+      end
+
+      # Compute verse_range from cached segments (avoid model method that queries DB)
+      computed_verse_range = if cached_segments.empty?
+        nil
+      else
+        verse_keys = cached_segments.map(&:verse_key).uniq
+        if verse_keys.size == 1
+          verse_keys.first
+        else
+          first = verse_keys.first
+          last = verse_keys.last
+          chapter = first.split(':').first
+          first_verse = first.split(':').last
+          last_verse = last.split(':').last
+          "#{chapter}:#{first_verse}-#{last_verse}"
+        end
+      end
+
+      # Compute cross_verse? from cached segments (avoid COUNT query)
+      computed_cross_verse = cached_segments.map(&:verse_id).uniq.size > 1
+
+      # Compute juncture_text from cached segments using words cache
+      computed_juncture_text = cached_segments.map { |seg| compute_segment_text.call(seg) }.compact.join(' ... ')
+      computed_juncture_text = nil if computed_juncture_text.empty?
+
+      json.object! do
+        json.id juncture.id
+        json.position juncture.position
+        json.verse_key computed_verse_key
+        json.verse_range computed_verse_range
+        json.cross_verse computed_cross_verse
+        json.text computed_juncture_text
+
+        # Segments - use pre-cached sorted segments and words cache
+        json.segments do
+          json.array! cached_segments do |segment|
+            # Use already-loaded start_word/end_word for positions (no query)
+            start_word_pos = segment.start_word&.position
+            end_word_pos = segment.end_word&.position
+
+            # Compute segment text from cache (no query)
+            segment_text = compute_segment_text.call(segment)
+
+            json.object! do
+              json.id segment.id
+              json.verse_key segment.verse_key
+              json.verse_id segment.verse_id
+              json.start_word_id segment.start_word_id
+              json.end_word_id segment.end_word_id
+              json.start_word_position start_word_pos
+              json.end_word_position end_word_pos
+              json.text segment_text
+              json.position segment.position
+            end
+          end
+        end
+
+        json.readings do
+          json.array! cached_readings do |reading|
+            # Pre-cache reading's localized contents indexed by content_type and language_id
+            reading_lc_cache = reading.localized_contents.group_by { |lc| [lc.content_type, lc.language_id] }
+
+            # Pre-cache shared translations indexed by language_id
+            shared_translation_lc_cache = {}
+            reading.qiraat_reading_translations.each do |trans|
+              shared_translation_lc_cache[trans.id] = trans.localized_contents.group_by(&:language_id)
+            end
+
+            # Pre-cache shared explanations indexed by language_id
+            shared_explanation_lc_cache = {}
+            reading.qiraat_reading_explanations.each do |expl|
+              shared_explanation_lc_cache[expl.id] = expl.localized_contents.group_by(&:language_id)
+            end
+
+            json.object! do
+              json.id reading.id
+              # Reading text - uses text_uthmani/text_imlaei since readings don't have qpc_hafs
+              reading_text = case text_field
+                             when 'text_imlaei'
+                               reading.text_imlaei.presence || reading.text_uthmani
+                             else
+                               reading.text_uthmani
+                             end
+              json.text reading_text
+              json.text_uthmani reading.text_uthmani
+              json.text_imlaei reading.text_imlaei
+              json.grammatical_form reading.grammatical_form
+              json.root_letters reading.root_letters
+
+              # Color comes from the database
+              json.color reading.color
+
+              # Shared translations (from already-loaded qiraat_reading_translations)
+              sorted_translations = reading.qiraat_reading_translations.sort_by { |t| t.position || Float::INFINITY }
+              translations = sorted_translations.filter_map do |trans|
+                trans_lc_by_lang = shared_translation_lc_cache[trans.id] || {}
+                # Try requested language first, then English fallback
+                lc = trans_lc_by_lang[@language.id]&.find { |c| c.content_type == 'translation' }
+                lc ||= trans_lc_by_lang[english&.id]&.find { |c| c.content_type == 'translation' } unless is_english
+                next nil unless lc&.text.present?
+                { id: trans.id, text: lc.text, source: trans.source || lc.source }
+              end
+
+              if translations.present?
+                json.translations do
+                  json.array! translations do |trans|
+                    json.object! do
+                      json.id trans[:id]
+                      json.text trans[:text]
+                      json.source trans[:source]
+                    end
+                  end
+                end
+                json.translation translations.first[:text]
+              else
+                # Fallback to direct localized_contents (legacy support) with English fallback
+                translation_content = reading_lc_cache[['translation', @language.id]]&.first
+                translation_content ||= reading_lc_cache[['translation', english&.id]]&.first unless is_english
+                json.translation translation_content&.text if translation_content
+              end
+
+              # Transliteration with English fallback (use cached data)
+              transliteration_content = reading_lc_cache[['transliteration', @language.id]]&.first
+              transliteration_content ||= reading_lc_cache[['transliteration', english&.id]]&.first unless is_english
+              json.transliteration transliteration_content&.text if transliteration_content
+
+              # Shared explanations (from already-loaded qiraat_reading_explanations)
+              sorted_explanations = reading.qiraat_reading_explanations.sort_by { |e| e.position || Float::INFINITY }
+              explanation_text = nil
+              explanation_id = nil
+              explanation_source = nil
+
+              if sorted_explanations.any?
+                shared_exp = sorted_explanations.first
+                expl_lc_by_lang = shared_explanation_lc_cache[shared_exp.id] || {}
+
+                # First try: shared explanation in requested language
+                shared_lc = expl_lc_by_lang[@language.id]&.find { |c| c.content_type == 'explanation' }
+                if shared_lc&.text.present?
+                  explanation_text = shared_lc.text
+                  explanation_id = shared_exp.id
+                  explanation_source = shared_exp.source
+                else
+                  # Second try: reading's direct content in requested language
+                  reading_lc = reading_lc_cache[['explanation', @language.id]]&.first
+                  if reading_lc&.text.present?
+                    explanation_text = reading_lc.text
+                    explanation_id = shared_exp.id
+                  elsif !is_english && english
+                    # Third try: shared explanation in English
+                    shared_lc_en = expl_lc_by_lang[english.id]&.find { |c| c.content_type == 'explanation' }
+                    if shared_lc_en&.text.present?
+                      explanation_text = shared_lc_en.text
+                      explanation_id = shared_exp.id
+                      explanation_source = shared_exp.source
+                    else
+                      # Fourth try: reading's direct content in English
+                      reading_lc_en = reading_lc_cache[['explanation', english.id]]&.first
+                      if reading_lc_en&.text.present?
+                        explanation_text = reading_lc_en.text
+                        explanation_id = shared_exp.id
+                      end
+                    end
+                  end
+                end
+
+                if explanation_text.present?
+                  json.explanations do
+                    json.array! [{ id: explanation_id, text: explanation_text, source: explanation_source }] do |expl|
+                      json.object! do
+                        json.id expl[:id]
+                        json.text expl[:text]
+                        json.source expl[:source]
+                      end
+                    end
+                  end
+                  json.explanation do
+                    json.object! do
+                      json.id explanation_id
+                      json.text explanation_text
+                      json.source explanation_source
+                    end
+                  end
+                end
+              else
+                # No shared explanations - check reading's direct localized_contents only
+                explanation_content = reading_lc_cache[['explanation', @language.id]]&.first
+                explanation_content ||= reading_lc_cache[['explanation', english&.id]]&.first unless is_english
+                if explanation_content
+                  json.explanation do
+                    json.object! do
+                      json.text explanation_content.text
+                    end
+                  end
+                end
+              end
+
+              # Matrix data (use already-loaded attributions)
+              json.matrix do
+                json.object! do
+                  # Use already-loaded attributions (no need for .includes)
+                  attributions = reading.qiraat_reading_attributions
+                  reader_ids = []
+                  transmitter_ids = []
+                  cells = []
+
+                  attributions.each do |attr|
+                    if attr.qiraat_transmitter_id.nil?
+                      reader_ids << attr.qiraat_reader_id
+                      cells << {
+                        reader_id: attr.qiraat_reader_id,
+                        transmitter_id: nil,
+                        type: 'reader'
+                      }
+                    else
+                      transmitter_ids << attr.qiraat_transmitter_id
+                      cells << {
+                        reader_id: attr.qiraat_reader_id,
+                        transmitter_id: attr.qiraat_transmitter_id,
+                        type: 'transmitter'
+                      }
+                    end
+                  end
+
+                  json.readers reader_ids.uniq
+                  json.transmitters transmitter_ids.uniq
+                  json.cells cells
+                end
+              end
+            end
+          end
+        end
+
+        # Commentary with English fallback (use cached data)
+        commentary_content = juncture_lc_cache[['combined_translation', @language.id]]&.first
+        commentary_content ||= juncture_lc_cache[['combined_translation', english&.id]]&.first unless is_english
+        json.commentary commentary_content&.text if commentary_content
+        json.combined_translation commentary_content&.text if commentary_content
+      end
+    end
+  end
+
+
+  json.meta do
+    json.object! do
+      json.language @language.iso_code
+      json.direction @language.direction
+      json.text_field text_field
+      # Use .size on already-loaded association to avoid COUNT query
+      json.total_junctures @junctures.size
+      # Use pre-computed count instead of N+1 queries
+      json.total_readings total_readings_count
+      json.generated_at Time.current.iso8601
+    end
+  end
+end

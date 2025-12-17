@@ -1,0 +1,32 @@
+json.object! do
+  json.id juncture.id
+  json.verse_key juncture.verse_key
+  json.position juncture.position
+  json.word_id juncture.word_id
+  json.word_position juncture.word_position
+  json.start_word_position juncture.effective_start_word_position
+  json.end_word_position juncture.effective_end_word_position
+  json.text_uthmani juncture.juncture_text_uthmani
+  json.text_imlaei juncture.juncture_text_imlaei
+  json.flags juncture.flags if juncture.flags.present?
+
+  # Explanation
+  explanation = juncture.localized_contents.find_by(language: @language, content_type: 'explanation')
+  json.explanation explanation&.text if explanation
+
+  # Readings if included
+  if @includes&.include?('readings') && juncture.qiraat_readings.loaded?
+    json.readings do
+      json.array! juncture.qiraat_readings.order(:position) do |reading|
+        json.object! do
+          json.id reading.id
+          json.text_uthmani reading.text_uthmani
+          translation_content = reading.localized_contents.find_by(language: @language, content_type: 'translation')
+          json.translation translation_content&.text if translation_content
+        end
+      end
+    end
+  end
+
+  json.readings_count juncture.qiraat_readings.count
+end

@@ -1,0 +1,15 @@
+json.object! do
+  json.readers do
+    json.array! @readers do |reader|
+      json.object! do
+        json.partial! 'reader', reader: reader
+      end
+    end
+  end
+
+  json.meta do
+    json.object! do
+      json.total @readers.count
+    end
+  end
+end
