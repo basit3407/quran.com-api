@@ -240,9 +240,7 @@ RSpec.describe 'V4 Verses by range API', type: :request do
         char_type: char_type,
         char_type_name: 'word',
         token: token,
-        topic: topic,
-        en_transliteration: 'bismi',
-        text_uthmani: 'بِسْمِ'
+        topic: topic
       )
 
       WordTranslation.create!(
