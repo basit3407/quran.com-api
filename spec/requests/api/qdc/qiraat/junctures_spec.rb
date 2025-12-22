@@ -7,11 +7,16 @@ RSpec.describe 'Api::Qdc::Qiraat::Junctures', type: :request do
 
   before do
     # Clean up any existing qiraat data in correct dependency order
+    # First delete join tables and tables with foreign keys
+    QiraatReadingTranslationMembership.delete_all
     QiraatReadingExplanationMembership.delete_all
     QiraatReadingAttribution.delete_all
     QiraatReading.delete_all
+    QiraatReadingTranslation.delete_all
     QiraatReadingExplanation.delete_all
+    QiraatJunctureSegment.delete_all
     QiraatJuncture.delete_all
+    QiratType.update_all(qiraat_transmitter_id: nil) # Clear FK references before deleting transmitters
     QiraatTransmitter.delete_all
     QiraatReader.delete_all
 
@@ -25,18 +30,39 @@ RSpec.describe 'Api::Qdc::Qiraat::Junctures', type: :request do
       v.text_uthmani = 'أَرْسِلْهُ مَعَنَا غَدًا يَرْتَعْ وَيَلْعَبْ'
     end
 
-    @juncture1 = create(:qiraat_juncture,
+    # Create words for the verse
+    @word1 = Word.find_or_create_by!(verse_id: @verse.id, position: 3) do |w|
+      w.text_uthmani = 'غَدًا'
+      w.text_imlaei = 'غدا'
+      w.text_qpc_hafs = 'غَدًا'
+      w.char_type_name = 'word'
+    end
+
+    @word2 = Word.find_or_create_by!(verse_id: @verse.id, position: 4) do |w|
+      w.text_uthmani = 'يَرْتَعْ'
+      w.text_imlaei = 'يرتع'
+      w.text_qpc_hafs = 'يَرْتَعْ'
+      w.char_type_name = 'word'
+    end
+
+    @juncture1 = create(:qiraat_juncture, position: 1)
+    @juncture2 = create(:qiraat_juncture, position: 2)
+
+    # Create segments that link junctures to the verse via words
+    @segment1 = create(:qiraat_juncture_segment,
+      qiraat_juncture: @juncture1,
       verse: @verse,
-      start_word_position: 3,
-      position: 1,
-      juncture_text_uthmani: 'غَدًا'
+      start_word: @word1,
+      end_word: @word1,
+      position: 1
     )
 
-    @juncture2 = create(:qiraat_juncture,
+    @segment2 = create(:qiraat_juncture_segment,
+      qiraat_juncture: @juncture2,
       verse: @verse,
-      start_word_position: 4,
-      position: 2,
-      juncture_text_uthmani: 'يَرْتَعْ'
+      start_word: @word2,
+      end_word: @word2,
+      position: 1
     )
 
     @reading1 = create(:qiraat_reading,
