@@ -117,6 +117,20 @@ namespace :qiraat do
     puts "\n✅ All Qiraat data seeded successfully!"
   end
 
+  desc 'Seed Qiraat ResourceContent for access control (used by tools.quran.com)'
+  task seed_resource_content: :environment do
+    puts "\nSeeding Qiraat ResourceContent for access control..."
+
+    qiraat_resource = ResourceContent.find_or_create_by!(name: 'Qiraat Data') do |rc|
+      rc.sub_type = 'data'
+      rc.resource_type = 'content'
+      rc.description = 'Qiraat readings, attributions, and related data. Assign this resource to admin users to grant access to the Qiraat Matrix Editor.'
+      rc.approved = true
+    end
+
+    puts "✅ Created/Found ResourceContent: #{qiraat_resource.name} (ID: #{qiraat_resource.id})"
+  end
+
   desc 'Clear all Qiraat juncture data for a specific surah. Usage: rake qiraat:clear_surah[chapter_id]'
   task :clear_surah, [:chapter_id] => :environment do |_t, args|
     chapter_id = args[:chapter_id].to_i
