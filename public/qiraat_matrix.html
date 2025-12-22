@@ -471,7 +471,7 @@
                                 <i class="bi bi-search"></i>
                             </span>
                             <input type="text" class="form-control" id="verseInput"
-                                placeholder="Enter verse key (e.g., 15:8)" value="15:8">
+                                placeholder="Enter verse key (e.g., 15:8)" value="1:1">
                         </div>
                     </div>
                     <div class="col-md-8">
@@ -1120,58 +1120,93 @@
         }
 
         /**
-         * Group readings by shared translation IDs AND explanation IDs
-         * Returns array of groups: { groupKey, translationData, explanationData, readings, firstColor }
+         * Group CONSECUTIVE readings by shared explanations for display purposes.
+         * This allows merging explanation blocks when adjacent readings share the same explanation,
+         * while maintaining strict position order.
          *
          * Logic:
-         * - Readings with the same translation ID(s) AND explanation ID(s) are grouped together
-         * - Readings without translations or explanations get their own unique group
+         * - Sort all readings by position first
+         * - Only group consecutive readings that share the same explanation ID(s)
+         * - Readings with different explanations or gaps in position create new groups
          */
         function groupReadingsByExplanation(readings) {
-            const groups = [];
-            const groupKeyToGroup = {};
+            // First, sort all readings by position
+            const sortedReadings = [...readings].sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
 
-            readings.forEach(reading => {
-                const translations = reading.translations || [];
+            const groups = [];
+            let currentGroup = null;
+            let currentKey = null;
+
+            sortedReadings.forEach(reading => {
                 const explanations = reading.explanations || [];
 
-                // Create composite grouping key for BOTH translation and explanation
-                const transPart = translations.length > 0
-                    ? 'trans:' + translations.map(t => t.id || '').sort().join(',')
-                    : 'trans:none';
+                // Generate a key for this reading's explanation(s)
                 const explPart = explanations.length > 0
                     ? 'expl:' + explanations.map(e => e.id || '').sort().join(',')
                     : 'expl:none';
 
-                let groupKey;
-                let groupData = { translations: translations.length > 0 ? translations : null, explanations: explanations.length > 0 ? explanations : null };
-
-                // If either is shared, group together; if neither, individual reading
-                if (translations.length > 0 || explanations.length > 0) {
-                    groupKey = `${transPart}|${explPart}`;
+                // Only continue the same group if the explanation key matches
+                // This ensures consecutive readings with same explanation are grouped
+                if (currentGroup && currentKey === explPart) {
+                    currentGroup.readings.push(reading);
                 } else {
-                    groupKey = `__reading_${reading.id}__`;
-                }
-
-                if (!groupKeyToGroup[groupKey]) {
-                    groupKeyToGroup[groupKey] = {
-                        groupKey,
-                        explanationData: groupData.explanations,
-                        translationData: groupData.translations,
-                        readings: [],
-                        firstColor: null
+                    // Start a new group
+                    currentGroup = {
+                        groupKey: explPart,
+                        explanationData: explanations.length > 0 ? explanations : null,
+                        readings: [reading],
+                        firstColor: normalizeReadingColor(reading, '#f5f5f5')
                     };
-                    groups.push(groupKeyToGroup[groupKey]);
-                }
-
-                const group = groupKeyToGroup[groupKey];
-                group.readings.push(reading);
-                if (!group.firstColor) {
-                    group.firstColor = normalizeReadingColor(reading, '#f5f5f5');
+                    currentKey = explPart;
+                    groups.push(currentGroup);
                 }
             });
 
             return groups;
+        }
+
+        /**
+         * Get translation key for a reading (used to detect shared translations)
+         */
+        function getTranslationKey(reading) {
+            const translations = reading.translations || [];
+            if (translations.length > 0) {
+                return 'trans:' + translations.map(t => t.id || '').sort().join(',');
+            }
+            // No shared translation - unique key per reading
+            return `__reading_trans_${reading.id}__`;
+        }
+
+        /**
+         * Calculate translation spans for a list of readings
+         * Returns array of { startIndex, count, translationData } for merged translation cells
+         */
+        function calculateTranslationSpans(readings) {
+            const spans = [];
+            let i = 0;
+
+            while (i < readings.length) {
+                const reading = readings[i];
+                const transKey = getTranslationKey(reading);
+                const translations = reading.translations || [];
+
+                // Count consecutive readings with same translation key
+                let count = 1;
+                while (i + count < readings.length && getTranslationKey(readings[i + count]) === transKey) {
+                    count++;
+                }
+
+                spans.push({
+                    startIndex: i,
+                    count: count,
+                    translationData: translations.length > 0 ? translations : null,
+                    reading: reading // for fallback to reading.translation
+                });
+
+                i += count;
+            }
+
+            return spans;
         }
 
 
@@ -1282,44 +1317,63 @@
                 // Header rows with dynamic colors
                 html += renderHeaderRows(structure, headerColors);
 
-                // Group readings by shared translation or explanation
+                // Group readings by shared explanation only (translations remain individual per reading)
                 const groups = groupReadingsByExplanation(readings);
 
-                // Render each group - translation cell spans content rows of the group
+                // Render each group
                 groups.forEach(group => {
                     const groupReadings = group.readings;
                     const explanationData = group.explanationData;
-                    const translationData = group.translationData;
                     const hasSharedExplanation = explanationData && explanationData.length > 0;
 
-                    // Calculate total rows for translation cell rowspan:
-                    // - Reading rows: groupReadings.length
-                    // - Explanation row: +1 ONLY if shared (individual explanations render inline, not as separate rows)
-                    const totalRowsForGroup = groupReadings.length + (hasSharedExplanation ? 1 : 0);
+                    // Calculate translation spans WITHIN this group (for merging translation cells)
+                    const translationSpans = calculateTranslationSpans(groupReadings);
+
+                    // Build a map: readingIndex -> { isFirstInTransSpan, spanCount, translationData, isLastSpanInGroup }
+                    const transSpanMap = {};
+                    translationSpans.forEach((span, spanIdx) => {
+                        const isLastSpanInGroup = spanIdx === translationSpans.length - 1;
+                        for (let j = 0; j < span.count; j++) {
+                            const idx = span.startIndex + j;
+                            // If this is the last translation span AND there's a shared explanation,
+                            // add +1 to spanCount to include the explanation row
+                            let adjustedSpanCount = span.count;
+                            if (isLastSpanInGroup && hasSharedExplanation && j === 0) {
+                                adjustedSpanCount = span.count + 1; // include explanation row
+                            }
+                            transSpanMap[idx] = {
+                                isFirstInTransSpan: j === 0,
+                                spanCount: j === 0 ? adjustedSpanCount : span.count,
+                                translationData: span.translationData,
+                                reading: span.reading
+                            };
+                        }
+                    });
 
                     groupReadings.forEach((reading, index) => {
                         const color = normalizeReadingColor(reading, '#f5f5f5');
                         const isFirstInGroup = index === 0;
                         const isLastInGroup = index === groupReadings.length - 1;
+                        const transInfo = transSpanMap[index];
 
-                        // Render reading row, with translation cell on the first content row
+                        // Render reading row
                         html += renderReadingRowsWithTranslation(
                             reading,
                             structure,
                             splits,
                             color,
-                            translationData,
                             explanationData,
                             isFirstInGroup,
                             isLastInGroup,
-                            totalRowsForGroup,
                             group.firstColor,
                             direction,
-                            hasSharedExplanation
+                            hasSharedExplanation,
+                            transInfo
                         );
                     });
 
                     // After all readings in group, render shared explanation row if present
+                    // Note: The translation cell for this row is handled by the last translation span's rowspan
                     if (hasSharedExplanation) {
                         const explText = explanationData.map(e => e.text || '').filter(t => t).join('<br>');
                         if (explText) {
@@ -1450,9 +1504,9 @@
         /**
          * Render a single reading row (NOT two rows - just one content row)
          * - LEFT: Arabic text, transliteration, notes (with background color)
-         * - RIGHT: Translation (can span multiple readings when shared)
+         * - RIGHT: Translation (merged if shared with other readings via transInfo)
          */
-        function renderReadingRowsWithTranslation(reading, structure, splits, color, translationData, explanationData, isFirstInGroup, isLastInGroup, totalRowsForGroup, groupColor, direction, hasSharedExplanation) {
+        function renderReadingRowsWithTranslation(reading, structure, splits, color, explanationData, isFirstInGroup, isLastInGroup, groupColor, direction, hasSharedExplanation, transInfo) {
             let html = '';
 
             // Single content row with background color
@@ -1471,25 +1525,28 @@
             }
             html += '</td>';
 
-            // RIGHT: Translation cell (spans multiple readings when shared)
-            if (isFirstInGroup) {
+            // RIGHT: Translation cell - only render if this is the first reading in a translation span
+            if (transInfo && transInfo.isFirstInTransSpan) {
                 let translationText = '';
 
-                // Priority: shared translations > individual translation
-                if (translationData && translationData.length > 0) {
-                    translationText = translationData.map(t => t.text || '').filter(t => t).join('<br>');
+                // Get translation from shared translations or individual reading.translation
+                if (transInfo.translationData && transInfo.translationData.length > 0) {
+                    translationText = transInfo.translationData.map(t => t.text || '').filter(t => t).join('<br>');
                 } else if (reading.translation) {
                     translationText = reading.translation;
                 }
 
+                const rowspan = transInfo.spanCount;
+
                 if (translationText) {
-                    html += `<td rowspan="${totalRowsForGroup}" style="background-color: ${groupColor}; vertical-align: middle; padding: 15px 20px; text-align: start; min-width: 200px; font-size: 0.95rem; line-height: 1.7; border-left: 3px solid var(--accent-color);" dir="${direction}">`;
+                    html += `<td rowspan="${rowspan}" style="background-color: ${color}; vertical-align: middle; padding: 15px 20px; text-align: start; min-width: 200px; font-size: 0.95rem; line-height: 1.7; border-left: 3px solid var(--accent-color);" dir="${direction}">`;
                     html += `<i class="bi bi-quote text-muted"></i> ${translationText.replace(/^"|"$/g, '')}`;
                     html += '</td>';
                 } else {
-                    html += `<td rowspan="${totalRowsForGroup}" style="background-color: ${groupColor}; vertical-align: middle;"></td>`;
+                    html += `<td rowspan="${rowspan}" style="background-color: ${color}; vertical-align: middle;"></td>`;
                 }
             }
+            // If not first in translation span, don't render translation cell (it's spanned from above)
 
             html += '</tr>';
 

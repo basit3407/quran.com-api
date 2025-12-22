@@ -22,6 +22,8 @@
 #
 
 class QiraatReader < ApplicationRecord
+  include NameTranslateable
+
   # Associations
   has_many :qiraat_transmitters, dependent: :destroy
   has_many :qiraat_reading_attributions, dependent: :destroy

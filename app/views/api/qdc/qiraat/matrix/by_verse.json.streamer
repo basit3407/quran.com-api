@@ -181,6 +181,7 @@ json.object! do
 
             json.object! do
               json.id reading.id
+              json.position reading.position
               # Reading text - uses text_uthmani/text_imlaei since readings don't have qpc_hafs
               reading_text = case text_field
                              when 'text_imlaei'

@@ -20,6 +20,7 @@ json.object! do
       json.array! juncture.qiraat_readings.order(:position) do |reading|
         json.object! do
           json.id reading.id
+          json.position reading.position
           json.text_uthmani reading.text_uthmani
           translation_content = reading.localized_contents.find_by(language: @language, content_type: 'translation')
           json.translation translation_content&.text if translation_content
