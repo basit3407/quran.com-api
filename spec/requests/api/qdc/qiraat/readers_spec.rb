@@ -146,4 +146,78 @@ RSpec.describe 'Api::Qdc::Qiraat::Readers', type: :request do
       expect(json['error']['message']).to include('not found')
     end
   end
+
+  describe 'language support' do
+    let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar', name: 'Arabic', direction: 'rtl') }
+
+    before do
+      # Add Arabic localized name for reader1
+      create(:localized_content,
+        resource: @reader1,
+        language: arabic,
+        content_type: 'name',
+        text: 'نافع المدني'
+      )
+
+      # Add Arabic bio for reader1
+      create(:localized_content,
+        resource: @reader1,
+        language: arabic,
+        content_type: 'bio',
+        text: 'كان نافع عالماً بارزاً في قراءة القرآن في المدينة المنورة.'
+      )
+    end
+
+    describe 'translated_name' do
+      it 'returns Arabic name when language=ar' do
+        get '/api/qdc/qiraat/readers', params: { language: 'ar' }
+
+        json = JSON.parse(response.body)
+        reader = json['readers'].find { |r| r['id'] == @reader1.id }
+
+        expect(reader['translated_name']).to eq('نافع المدني')
+      end
+
+      it 'returns default name when language has no translation' do
+        get '/api/qdc/qiraat/readers', params: { language: 'fr' }
+
+        json = JSON.parse(response.body)
+        reader = json['readers'].find { |r| r['id'] == @reader1.id }
+
+        # Falls back to default name (no French or English localized name)
+        expect(reader['translated_name']).to eq('Nāfiʿ al-Madanī')
+      end
+
+      it 'returns default name for reader without localized content' do
+        get '/api/qdc/qiraat/readers', params: { language: 'ar' }
+
+        json = JSON.parse(response.body)
+        reader = json['readers'].find { |r| r['id'] == @reader2.id }
+
+        # Reader2 has no Arabic name, falls back to default
+        expect(reader['translated_name']).to eq('Ibn Kathīr')
+      end
+    end
+
+    describe 'bio with fallback' do
+      it 'returns Arabic bio when language=ar and include=bio' do
+        get '/api/qdc/qiraat/readers', params: { language: 'ar', include: 'bio' }
+
+        json = JSON.parse(response.body)
+        reader = json['readers'].find { |r| r['id'] == @reader1.id }
+
+        expect(reader['bio']['text']).to eq('كان نافع عالماً بارزاً في قراءة القرآن في المدينة المنورة.')
+      end
+
+      it 'falls back to English bio when requested language not available' do
+        get '/api/qdc/qiraat/readers', params: { language: 'fr', include: 'bio' }
+
+        json = JSON.parse(response.body)
+        reader = json['readers'].find { |r| r['id'] == @reader1.id }
+
+        # Falls back to English bio
+        expect(reader['bio']['text']).to include('Nāfiʿ was a prominent scholar')
+      end
+    end
+  end
 end

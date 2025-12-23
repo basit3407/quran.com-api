@@ -1460,15 +1460,18 @@
                     const r = col.reader || {};
                     // Get color from reading attribution (database) - fallback to light gray
                     const bg = readerColorMap[r.id] || '#e9ecef';
-                    const label = r.name || r.abbreviation || '';
-                    const subLabel = r.abbreviation && r.name ? ` <span style="font-weight: normal; opacity: 0.85;">(${r.abbreviation})</span>` : '';
+                    // Use translated_name (localized) with fallback to name
+                    const label = r.translated_name || r.name || r.abbreviation || '';
+                    // Only show abbreviation in parentheses when using default name (not translated)
+                    const subLabel = (!r.translated_name && r.abbreviation && r.name) ? ` <span style="font-weight: normal; opacity: 0.85;">(${r.abbreviation})</span>` : '';
 
                     const tx = (col.splitMode ? (col.transmitters || []) : []).slice();
                     const txHtml = tx.length > 0
                         ? `
                             <div style="display:grid; grid-template-columns: repeat(${tx.length}, 1fr); border-top:1px solid #dee2e6;">
                                 ${tx.map((t, idx) => {
-                            const tLabel = t?.name || t?.abbreviation || '';
+                            // Use translated_name (localized) with fallback to name
+                            const tLabel = t?.translated_name || t?.name || t?.abbreviation || '';
                             // Get transmitter color from reading attribution (database)
                             const tBg = transmitterColorMap[t.id] || bg;
                             const borderLeft = idx === 0 ? '' : 'border-left:1px solid #dee2e6;';

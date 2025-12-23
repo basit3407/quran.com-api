@@ -102,11 +102,11 @@ module Api
         end
 
         def all_readers
-          @all_readers ||= QiraatReader.order(:position)
+          @all_readers ||= QiraatReader.includes(:localized_contents).order(:position)
         end
 
         def all_transmitters
-          @all_transmitters ||= QiraatTransmitter.includes(:qiraat_reader)
+          @all_transmitters ||= QiraatTransmitter.includes(:qiraat_reader, :localized_contents)
                                                   .order('qiraat_readers.position', 'qiraat_transmitters.position')
         end
 

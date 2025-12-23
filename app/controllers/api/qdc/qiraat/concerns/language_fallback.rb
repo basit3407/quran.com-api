@@ -3,8 +3,10 @@
 module Api
   module Qdc
     module Qiraat
-      # Helper module for language fallback logic
+      # Helper module for language fallback logic in controllers
       # Always tries requested language first, then falls back to English
+      #
+      # For models, use LocalizedContentFallback concern in app/models/concerns/
       module LanguageFallback
         extend ActiveSupport::Concern
 

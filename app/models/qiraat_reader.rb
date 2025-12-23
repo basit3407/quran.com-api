@@ -23,6 +23,7 @@
 
 class QiraatReader < ApplicationRecord
   include NameTranslateable
+  include LocalizedContentFallback
 
   # Associations
   has_many :qiraat_transmitters, dependent: :destroy
@@ -57,14 +58,11 @@ class QiraatReader < ApplicationRecord
   end
 
   def bio_for(language)
-    localized_contents.find_by(language: language, content_type: 'bio')
+    localized_content_for('bio', language)
   end
 
   def translated_name_for(language)
-    return name unless name_translations.present?
-
-    language_code = language.is_a?(Language) ? language.iso_code : language.to_s
-    name_translations[language_code] || name
+    localized_text_for('name', language) || name
   end
 
   def full_name

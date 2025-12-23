@@ -308,6 +308,285 @@ namespace :qiraat do
     end
 
     puts "✅ Seeded #{QiraatTransmitter.count} transmitters"
+
+    # Seed localized names for readers and transmitters (Arabic examples)
+    arabic = Language.find_by(iso_code: 'ar')
+    if arabic
+      puts "\nSeeding localized Arabic names..."
+
+      # Reader Arabic names
+      reader_arabic_names = {
+        'Ibn ʿĀmir' => 'ابن عامر الشامي',
+        'Ḥamzah' => 'حمزة الزيّات',
+        'Khalaf' => 'خلف البزّار',
+        'al-Kisāʾī' => 'الكسائي',
+        'ʿĀṣim' => 'عاصم الكوفي',
+        'Abū Jaʿfar' => 'أبو جعفر المدني',
+        'Nāfiʿ' => 'نافع المدني',
+        'Ibn Kathīr' => 'ابن كثير المكي',
+        'Abū ʿAmr' => 'أبو عمرو البصري',
+        'Yaʿqūb' => 'يعقوب الحضرمي'
+      }
+
+      reader_arabic_names.each do |abbr, arabic_name|
+        reader = QiraatReader.find_by(abbreviation: abbr)
+        next unless reader
+
+        LocalizedContent.find_or_create_by!(
+          resource: reader,
+          language: arabic,
+          content_type: 'name'
+        ) { |lc| lc.text = arabic_name }
+        puts "  ✓ #{abbr} → #{arabic_name}"
+      end
+
+      # Transmitter Arabic names (sample)
+      transmitter_arabic_names = {
+        'Ḥafṣ' => 'حفص',
+        "Shuʿbah" => 'شعبة',
+        'Qālūn' => 'قالون',
+        'Warsh' => 'ورش',
+        'al-Bazzī' => 'البزّي',
+        'Qunbul' => 'قنبل',
+        'al-Dūrī' => 'الدوري',
+        'al-Sūsī' => 'السوسي',
+        'Hishām' => 'هشام',
+        'I. Dhakwān' => 'ابن ذكوان',
+        'Khalaf' => 'خلف',
+        'Khallād' => 'خلاد',
+        'Dūrī (K)' => 'الدوري (الكسائي)',
+        'A. Ḥārith' => 'أبو الحارث',
+        'Ibn Wardān' => 'ابن وردان',
+        'Ibn Jammāz' => 'ابن جماز',
+        'Ruways' => 'رويس',
+        'Rawḥ' => 'روح',
+        'Isḥāq' => 'إسحاق',
+        'Idrīs' => 'إدريس'
+      }
+
+      transmitter_arabic_names.each do |abbr, arabic_name|
+        transmitter = QiraatTransmitter.find_by(abbreviation: abbr)
+        next unless transmitter
+
+        LocalizedContent.find_or_create_by!(
+          resource: transmitter,
+          language: arabic,
+          content_type: 'name'
+        ) { |lc| lc.text = arabic_name }
+        puts "  ✓ #{abbr} → #{arabic_name}"
+      end
+
+      puts "✅ Seeded localized Arabic names"
+    else
+      puts "⚠️  Arabic language not found, skipping localized names"
+    end
+
+    # Seed biographies for readers (English)
+    english = Language.find_by(iso_code: 'en')
+    if english
+      puts "\nSeeding reader biographies (English)..."
+
+      reader_bios_en = {
+        'Ibn ʿĀmir' => "Ibn 'Amir al-Shami (d. ~118 AH / 736 CE) was born in Mecca but spent most of his life in Damascus, Syria, where he became the Imam of the Umayyad Mosque. His recitation style was the official Qira'at used throughout Syria during the Umayyad period. He studied under several companions of the Prophet Muhammad, including Abu Darda and Al-Mughira ibn Abi Shihab. His primary transmitters were Hisham and Ibn Dhakwan.",
+
+        'Ḥamzah' => "Hamzah al-Zayyat (80-156 AH / 699-772 CE) was born in Kufa and died in Hulwan. His title 'al-Zayyat' (the oil merchant) came from his occupation. He was the leader of the reciters in Kufa after 'Asim and was taught by al-A'mash. Al-Kisa'i was one of his students. His style was known for its precise articulation and was transmitted primarily by Khalaf al-Bazzar and Khallad. He was also renowned as an Arabic grammarian and linguist.",
+
+        'Khalaf' => "Khalaf ibn Hisham al-Bazzar (150-229 AH / 767-844 CE) was born near Wasit, Iraq and died in Baghdad. He memorized the entire Qur'an by age 10 and started studying under scholars at 13. He was a transmitter for Hamzah's reading and also developed his own independent method, counted among the three accepted but less famous methods. Known for his strong knowledge of Arabic grammar and linguistics, he was praised for being righteous, virtuous, and devout. His recitation was transmitted through Ishaq al-Maruzi and Idris al-Haddad.",
+
+        'al-Kisāʾī' => "Al-Kisa'i (c. 120-189 AH / 737-805 CE) was a Persian polymath born in Kufa. He earned the title 'al-Kisa'i' because he performed Ihram in a 'kisa'' (cloak). He learned Quranic recitation from Imam Hamzah and was a founder of the Kufan School of Arabic grammar. He served Caliph Harun al-Rashid as the court tutor for his sons al-Ma'mun and al-Amin. His recitation style is noted for innovative intonations and subtle variations. His main transmitters were Al-Duri and Abu al-Harith.",
+
+        'ʿĀṣim' => "Asim ibn Abi al-Najud (d. 127-129 AH / 745-747 CE) was a prominent early Muslim scholar and Quran reciter from Kufa, Iraq. He held the highest sanad (chain of narration) in Kufa and became the head of reciters there after his teacher Abu Abdur Rahman As Sulami. His recitation method, particularly as transmitted by his stepson Hafs, is the most common way of reciting the Qur'an in the Muslim world today. He reportedly met at least 24 Companions of the Prophet and was known for his eloquence and beautiful recitation voice.",
+
+        'Abū Jaʿfar' => "Abu Ja'far al-Madani (c. 655-748 CE / ~130 AH) was born in Medina and was one of the ten canonical Qira'at imams. He learned the Quran from notable companions such as 'Abdullah ibn 'Abbas, 'Abdullah ibn 'Ayyash, and Abu Hurayrah. His Qira'a traces back to Ubayy ibn Ka'b and the Prophet Muhammad. His unique method emphasized clarity and precision in pronunciation. He was also a Faqih (jurist) who issued fatwas in Medina. His two primary transmitters were Ibn Wirdan and Ibn Jammaz.",
+
+        'Nāfiʿ' => "Nafi' al-Madani (70-169 AH / 689-785 CE) was born and died in Medina. His family originated from Isfahan. Nafi' was rooted in the Medinan tradition and his training reflected the early, precise practices of Quranic recitation in Medina. He was renowned for a clear, harmonious, and measured style, emphasizing balanced vowel elongation and strict adherence to Tajwid rules. His method became particularly popular in North and West Africa, and Qatar, primarily through his two most famous students, Warsh and Qalun.",
+
+        'Ibn Kathīr' => "Ibn Kathir al-Makki (45-120 AH / 665-738 CE) was born in Mecca. His family was of Persian origin and had immigrated to Yemen. He became the preeminent reciter of Mecca, learning under teachers such as 'Abd Allah ibn al-Sa'ib al-Makhzumi and Mujahid ibn Jabr. His chain of transmission traced back to Prophet Muhammad. He met companions including Anas ibn Malik and Abd Allah ibn al-Zubayr. His recitation was even preferred by Al-Shafi'i. His reading was transmitted through Al-Bazzi and Qunbul.",
+
+        'Abū ʿAmr' => "Abu 'Amr al-Basri (70-154 AH / 689-770 CE) was born in Mecca and raised in Basra, dying in Kufa. He was one of the seven prominent Qira'at reciters and a renowned linguist who contributed significantly to Arabic grammar, founding the Basran philology school. He had the most teachers among the seven Qira'at readers, studying in Basra, Kufa, Mecca, and Medina. His method was known for a strictly systematic approach focusing on accurate articulation and vowel precision. His principal transmitters were Ad-Duri and As-Susi.",
+
+        'Yaʿqūb' => "Ya'qub al-Hadrami (117-205 AH / 735-820 CE) was born in Basra and was the ninth of the ten famous Qira'at reciters. He became the leader of Quran reciters in Basra after Abu 'Amr al-Basri. His Qira'ah traced back to the companions through Abu Musa al-Ash'ari. His recitation was marked by distinctive pronunciation and a measured, lyrical delivery, preserving regional inflections from the Hadramawt region where his method remains popular in Yemen and related communities. His two primary transmitters were Ruways and Rawh."
+      }
+
+      reader_bios_en.each do |abbr, bio|
+        reader = QiraatReader.find_by(abbreviation: abbr)
+        next unless reader
+
+        LocalizedContent.find_or_create_by!(
+          resource: reader,
+          language: english,
+          content_type: 'bio'
+        ) { |lc| lc.text = bio }
+        puts "  ✓ #{abbr} bio (EN)"
+      end
+
+      puts "✅ Seeded reader biographies (English)"
+    end
+
+    # Seed Arabic biographies for readers
+    arabic = Language.find_by(iso_code: 'ar')
+    if arabic
+      puts "\nSeeding reader biographies (Arabic)..."
+
+      reader_bios_ar = {
+        'Ibn ʿĀmir' => "عبد الله بن عامر اليحصبي الشامي (ت. 118 هـ) كان إمام أهل الشام في القراءة. ولد بمكة ونشأ بدمشق حيث تولى إمامة الجامع الأموي. قرأ على الصحابي أبي الدرداء والمغيرة بن أبي شهاب. كانت قراءته الرسمية في بلاد الشام في العهد الأموي. رواته المشهورون هشام وابن ذكوان.",
+
+        'Ḥamzah' => "حمزة بن حبيب الزيّات (80-156 هـ) ولد بالكوفة وتوفي بحلوان. لُقب بالزيّات لاشتغاله بتجارة الزيت. كان شيخ القراء بالكوفة بعد عاصم. تلقى القراءة عن الأعمش وكان الكسائي من تلاميذه. اشتهر بدقة النطق وكان أيضاً عالماً بالنحو واللغة. رواته المشهورون خلف البزار وخلاد.",
+
+        'Khalaf' => "خلف بن هشام البزار (150-229 هـ) ولد قرب واسط بالعراق وتوفي ببغداد. حفظ القرآن في سن العاشرة وبدأ التعلم على المشايخ في الثالثة عشرة. كان راوياً لقراءة حمزة كما كانت له قراءة مستقلة. اشتهر بالعلم بالنحو واللغة وعُرف بالصلاح والتقوى والزهد. رواته إسحاق المروزي وإدريس الحداد.",
+
+        'al-Kisāʾī' => "علي بن حمزة الكسائي (نحو 120-189 هـ) كان إماماً في القراءة والنحو واللغة من أصل فارسي. لُقب بالكسائي لأنه أحرم في كساء. تلقى القراءة عن الإمام حمزة. كان مؤسس مدرسة الكوفة في النحو ومعلماً لأبناء هارون الرشيد (الأمين والمأمون). تميزت قراءته بالتجويد الدقيق. رواته الدوري وأبو الحارث.",
+
+        'ʿĀṣim' => "عاصم بن أبي النجود الكوفي (ت. 127-129 هـ) كان إمام القراء بالكوفة بعد شيخه أبي عبد الرحمن السلمي. قراءته برواية حفص هي الأكثر انتشاراً في العالم الإسلامي اليوم. لقي أكثر من أربعة وعشرين من الصحابة واشتهر بجمال صوته وفصاحته. كان أيضاً عالماً بالفقه والنحو.",
+
+        'Abū Jaʿfar' => "أبو جعفر يزيد بن القعقاع المدني (ت. 130 هـ) كان من أئمة القراءات العشر. قرأ على الصحابة عبد الله بن عباس وعبد الله بن عياش وأبي هريرة. يتصل سنده بأُبي بن كعب والنبي صلى الله عليه وسلم. تميزت قراءته بالوضوح والدقة. كان أيضاً مفتياً بالمدينة. رواته ابن وردان وابن جماز.",
+
+        'Nāfiʿ' => "نافع بن عبد الرحمن المدني (70-169 هـ) إمام دار الهجرة في القراءة. قرأ على سبعين من التابعين. اشتهر بقراءة واضحة منسجمة مع التزام دقيق بقواعد التجويد. انتشرت قراءته في شمال وغرب أفريقيا وقطر. قال الإمام مالك: قراءة نافع سنة. رواته قالون وورش.",
+
+        'Ibn Kathīr' => "عبد الله بن كثير المكي (45-120 هـ) إمام أهل مكة في القراءة. كان من أصل فارسي. قرأ على التابعين كعبد الله بن السائب المخزومي ومجاهد بن جبر. لقي الصحابة أنس بن مالك وعبد الله بن الزبير. فضّل الإمام الشافعي قراءته. رواته البزي وقنبل.",
+
+        'Abū ʿAmr' => "زبان بن العلاء البصري (70-154 هـ) ولد بمكة ونشأ بالبصرة. كان من أعلم الناس بالقراءات والنحو والعربية والشعر. أسس مدرسة البصرة في النحو. كان له أكثر المشايخ بين القراء السبعة حيث قرأ في البصرة والكوفة ومكة والمدينة. رواته الدوري والسوسي.",
+
+        'Yaʿqūb' => "يعقوب بن إسحاق الحضرمي البصري (117-205 هـ) التاسع من القراء العشرة. صار شيخ القراء بالبصرة بعد أبي عمرو. يتصل سنده بالصحابة من طريق أبي موسى الأشعري. تميزت قراءته بالنطق الدقيق والأداء الموزون مع الحفاظ على لهجة حضرموت. رواتهرويس وروح."
+      }
+
+      reader_bios_ar.each do |abbr, bio|
+        reader = QiraatReader.find_by(abbreviation: abbr)
+        next unless reader
+
+        LocalizedContent.find_or_create_by!(
+          resource: reader,
+          language: arabic,
+          content_type: 'bio'
+        ) { |lc| lc.text = bio }
+        puts "  ✓ #{abbr} bio (AR)"
+      end
+
+      puts "✅ Seeded reader biographies (Arabic)"
+    end
+
+    # Seed transmitter biographies (English)
+    english = Language.find_by(iso_code: 'en')
+    if english
+      puts "\nSeeding transmitter biographies (English)..."
+
+      transmitter_bios_en = {
+        'Ḥafṣ' => "Hafs ibn Sulayman al-Asadi al-Kufi (90-180 AH / 706-796 CE) was born in Baghdad and died in Kufa. He was a student and son-in-law of 'Asim ibn Abi al-Najud. The 'Hafs 'an 'Asim' recitation has become the most widely practiced Qira'ah, accounting for over 95% of global Quranic readings today. It was formally adopted as the standard for Egyptian Quranic printing in 1923.",
+
+        "Shuʿbah" => "Shu'bah ibn 'Ayyash (95-193 AH / 714-809 CE) was the other primary transmitter of 'Asim's recitation. He was known for his precision and reliability. While Hafs's transmission became more widespread globally, Shu'bah's transmission is still studied and valued in academic and scholarly circles.",
+
+        'Qālūn' => "Qalun (120-220 AH / 738-835 CE), whose real name was 'Isa ibn Mina al-Zarqi, was born and died in Medina. He studied under Nafi' al-Madani who nicknamed him 'Qalun' (meaning 'good' in Roman) for the quality of his recitation. Remarkably, he was deaf and would correct his students by reading their lips. His recitation is standard in Qatar, parts of Libya and Tunisia.",
+
+        'Warsh' => "Warsh (110-197 AH / 728-813 CE), whose real name was 'Uthman ibn Sa'id al-Qutbi al-Misri, was born in Egypt and traveled to Medina to study under Nafi' al-Madani. Nafi' gave him the nickname 'Warsh' due to his fair complexion. He became the leading reciter in Egypt. The 'Warsh 'an Nafi'' recitation is widespread in North and West Africa and was historically prevalent in Al-Andalus.",
+
+        'al-Bazzī' => "Al-Bazzi (170-250 AH / 786-864 CE), whose full name was Ahmad ibn Muhammad ibn 'Abd Allah ibn al-Qasim ibn Nafi' ibn Abi Bazzah, was the Mu'adhdhin of the Sacred Mosque in Mecca. He was one of the two primary transmitters of Ibn Kathir's recitation and was known for his mastery and precision.",
+
+        'Qunbul' => "Qunbul (195-291 AH / 810-904 CE), whose real name was Muhammad ibn 'Abd al-Rahman al-Makhzumi, was the other primary transmitter of Ibn Kathir's recitation. He was from Mecca and was known for his reliability in transmission.",
+
+        'al-Dūrī' => "Al-Duri (150-246 AH / 767-860 CE), whose full name was Hafs ibn 'Umar ibn 'Abd al-'Aziz al-Duri, was the foremost transmitter of Abu 'Amr al-Basri's recitation. He was also a transmitter for al-Kisa'i. He was born in Dura, a neighborhood of Baghdad, from which he got his name.",
+
+        'al-Sūsī' => "Al-Susi (died 261 AH / 874 CE), whose full name was Salih ibn Ziyad al-Susi, was the other primary transmitter of Abu 'Amr al-Basri's recitation. He was known for his precision and adherence to the exact method of recitation taught by Abu 'Amr.",
+
+        'Hishām' => "Hisham ibn 'Ammar (died 245 AH / 859 CE) was one of the two primary transmitters of Ibn 'Amir al-Shami's recitation. He was a renowned scholar and Imam of Damascus, known for his extensive knowledge of Quranic sciences and Arabic language.",
+
+        'I. Dhakwān' => "Ibn Dhakwan (died 242 AH / 856 CE), whose full name was 'Abd Allah ibn Ahmad ibn Dhakwan, was the other primary transmitter of Ibn 'Amir al-Shami's recitation. He was a Syrian scholar and was highly regarded for his accuracy in transmission.",
+
+        'Khalaf' => "Khalaf al-Bazzar (150-229 AH / 767-844 CE), in his role as a transmitter of Hamzah's recitation, was one of the two primary rawiys. He later developed his own independent reading method and is counted among the ten canonical readers.",
+
+        'Khallād' => "Khallad ibn Khalid al-Shaybani (died 220 AH / 835 CE) was the other primary transmitter of Hamzah al-Zayyat's recitation. He was known for his accuracy and deep understanding of Hamzah's recitation method.",
+
+        'Dūrī (K)' => "Al-Duri (d. 246 AH), in his role as transmitter for al-Kisa'i, represents a different transmission than his better-known transmission of Abu 'Amr's reading. He studied both readings but is more famous for the Abu 'Amr transmission.",
+
+        'A. Ḥārith' => "Abu al-Harith al-Layth ibn Khalid al-Baghdadi (died 240 AH / 854 CE) was one of the transmitters of al-Kisa'i's recitation. He was known for his reliability and was considered one of the main authorities for al-Kisa'i's reading method.",
+
+        'Ibn Wardān' => "Ibn Wardan (died 160 AH / 777 CE), whose full name was 'Isa ibn Wardan al-Madani, was one of the two primary transmitters of Abu Ja'far al-Madani's recitation. He was a scholar in Medina and transmitted the reading with great precision.",
+
+        'Ibn Jammāz' => "Ibn Jammaz (died 170 AH / 786 CE), whose full name was Sulayman ibn Muslim ibn Jammaz, was the other primary transmitter of Abu Ja'far al-Madani's recitation. He was known for his careful preservation of the Medinan reading tradition.",
+
+        'Ruways' => "Ruways (died 238 AH / 852 CE), whose real name was Muhammad ibn al-Mutawakkil al-Lu'lu'i, was one of the two primary transmitters of Ya'qub al-Hadrami's recitation. He was born in Basra and was known for his expertise in the Basran reading traditions.",
+
+        'Rawḥ' => "Rawh ibn 'Abd al-Mu'min al-Hudhali (died 234 AH / 849 CE) was the other primary transmitter of Ya'qub al-Hadrami's recitation. He was a respected scholar in Basra and transmitted the reading with great accuracy.",
+
+        'Isḥāq' => "Ishaq ibn Ibrahim al-Marwazi (died 286 AH / 899 CE), also known as Ishaq al-Warraq, was one of the two transmitters of Khalaf's independent reading. He was highly regarded for his scholarship and precision in transmission.",
+
+        'Idrīs' => "Idris ibn 'Abd al-Karim al-Haddad (died 292 AH / 905 CE) was the other transmitter of Khalaf's independent reading. He was a scholar in Baghdad and was known for his mastery of multiple Quranic readings."
+      }
+
+      transmitter_bios_en.each do |abbr, bio|
+        transmitter = QiraatTransmitter.find_by(abbreviation: abbr)
+        next unless transmitter
+
+        LocalizedContent.find_or_create_by!(
+          resource: transmitter,
+          language: english,
+          content_type: 'bio'
+        ) { |lc| lc.text = bio }
+        puts "  ✓ #{abbr} bio (EN)"
+      end
+
+      puts "✅ Seeded transmitter biographies (English)"
+    end
+
+    # Seed transmitter biographies (Arabic)
+    if arabic
+      puts "\nSeeding transmitter biographies (Arabic)..."
+
+      transmitter_bios_ar = {
+        'Ḥafṣ' => "حفص بن سليمان الأسدي الكوفي (90-180 هـ) ولد ببغداد وتوفي بالكوفة. كان ربيب عاصم بن أبي النجود وتلميذه. قراءة حفص عن عاصم هي أكثر القراءات انتشاراً في العالم الإسلامي اليوم. اعتُمدت قراءته معياراً لطباعة المصاحف في مصر عام 1923م.",
+
+        "Shuʿbah" => "شعبة بن عياش (95-193 هـ) الراوي الآخر لقراءة عاصم. اشتهر بالدقة والضبط. وإن كانت رواية حفص أكثر انتشاراً، فإن رواية شعبة لا تزال معتمدة في الدراسات العلمية والأكاديمية.",
+
+        'Qālūn' => "قالون (120-220 هـ) واسمه عيسى بن مينا الزرقي، ولد بالمدينة وتوفي فيها. تلقى القراءة عن نافع المدني الذي لقبه 'قالون' (تعني 'جيد' بالرومية) لجودة قراءته. كان أصمّ وكان يُصحح لتلاميذه بقراءة شفاههم. قراءته معتمدة في قطر وأجزاء من ليبيا وتونس.",
+
+        'Warsh' => "ورش (110-197 هـ) واسمه عثمان بن سعيد القبطي المصري. ولد بمصر ورحل إلى المدينة للتلقي عن نافع الذي لقبه 'ورش' لبياض لونه. صار شيخ القراء بمصر. رواية ورش عن نافع منتشرة في شمال وغرب أفريقيا وكانت سائدة في الأندلس.",
+
+        'al-Bazzī' => "البزي (170-250 هـ) واسمه أحمد بن محمد بن عبد الله. كان مؤذناً بالمسجد الحرام بمكة. أحد راويي ابن كثير المكي واشتهر بإتقانه ودقته في الرواية.",
+
+        'Qunbul' => "قنبل (195-291 هـ) واسمه محمد بن عبد الرحمن المخزومي. الراوي الآخر لقراءة ابن كثير. من مكة واشتهر بالثقة في الرواية.",
+
+        'al-Dūrī' => "الدوري (150-246 هـ) واسمه حفص بن عمر بن عبد العزيز. الراوي الأول لقراءة أبي عمرو البصري وأيضاً راوٍ عن الكسائي. نسبته إلى الدور محلة ببغداد.",
+
+        'al-Sūsī' => "السوسي (ت. 261 هـ) واسمه صالح بن زياد السوسي. الراوي الآخر لقراءة أبي عمرو البصري. اشتهر بالدقة والالتزام بطريقة أبي عمرو.",
+
+        'Hishām' => "هشام بن عمار (ت. 245 هـ) أحد راويي ابن عامر الشامي. كان عالماً وإماماً بدمشق مشهوراً بعلمه الواسع بعلوم القرآن واللغة العربية.",
+
+        'I. Dhakwān' => "ابن ذكوان (ت. 242 هـ) واسمه عبد الله بن أحمد بن ذكوان. الراوي الآخر لقراءة ابن عامر. عالم شامي معروف بدقته في النقل.",
+
+        'Khalaf' => "خلف البزار (150-229 هـ) بصفته راوياً عن حمزة كان أحد الراويين الرئيسيين. ثم أسس قراءته المستقلة وعُدّ من القراء العشرة.",
+
+        'Khallād' => "خلاد بن خالد الشيباني (ت. 220 هـ) الراوي الآخر لقراءة حمزة الزيات. اشتهر بالدقة والفهم العميق لطريقة حمزة.",
+
+        'Dūrī (K)' => "الدوري (ت. 246 هـ) في روايته عن الكسائي تمثل رواية مختلفة عن روايته الأشهر عن أبي عمرو. تلقى القراءتين لكنه أشهر برواية أبي عمرو.",
+
+        'A. Ḥārith' => "أبو الحارث الليث بن خالد البغدادي (ت. 240 هـ) أحد رواة الكسائي. اشتهر بالثقة وكان من أهم المراجع لقراءة الكسائي.",
+
+        'Ibn Wardān' => "ابن وردان (ت. 160 هـ) واسمه عيسى بن وردان المدني. أحد راويي أبي جعفر المدني. عالم بالمدينة نقل القراءة بدقة عالية.",
+
+        'Ibn Jammāz' => "ابن جماز (ت. 170 هـ) واسمه سليمان بن مسلم بن جماز. الراوي الآخر لأبي جعفر. اشتهر بالحفاظ على التقليد المدني في القراءة.",
+
+        'Ruways' => "رويس (ت. 238 هـ) واسمه محمد بن المتوكل اللؤلؤي. أحد راويي يعقوب الحضرمي. من البصرة واشتهر بخبرته في القراءات البصرية.",
+
+        'Rawḥ' => "روح بن عبد المؤمن الهذلي (ت. 234 هـ) الراوي الآخر ليعقوب الحضرمي. عالم بالبصرة نقل القراءة بدقة عالية.",
+
+        'Isḥāq' => "إسحاق بن إبراهيم المروزي (ت. 286 هـ) المعروف بإسحاق الوراق. أحد راويي خلف في قراءته المستقلة. اشتهر بالعلم والدقة.",
+
+        'Idrīs' => "إدريس بن عبد الكريم الحداد (ت. 292 هـ) الراوي الآخر لخلف في قراءته المستقلة. عالم ببغداد وكان متقناً لعدة قراءات."
+      }
+
+      transmitter_bios_ar.each do |abbr, bio|
+        transmitter = QiraatTransmitter.find_by(abbreviation: abbr)
+        next unless transmitter
+
+        LocalizedContent.find_or_create_by!(
+          resource: transmitter,
+          language: arabic,
+          content_type: 'bio'
+        ) { |lc| lc.text = bio }
+        puts "  ✓ #{abbr} bio (AR)"
+      end
+
+      puts "✅ Seeded transmitter biographies (Arabic)"
+    end
   end
 
   # ==========================================================================

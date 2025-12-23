@@ -22,7 +22,7 @@ end
 
 # Only include bio if localized_contents association is loaded
 if reader.association(:localized_contents).loaded?
-  bio = reader.localized_contents.find { |lc| lc.content_type == 'bio' && lc.language_id == @language.id }
+  bio = reader.bio_for(@language)
   if bio
     json.bio do
       json.object! do
