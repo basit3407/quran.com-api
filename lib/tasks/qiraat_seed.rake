@@ -250,8 +250,8 @@ namespace :qiraat do
 
     transmitters_data = {
       'ʿĀṣim' => [
-        { name: 'Ḥafṣ', abbreviation: 'Ḥafṣ', position: 1 },
-        { name: "Shuʿbah", abbreviation: "Shuʿbah", position: 2 }
+        { name: 'Ḥafṣ', abbreviation: 'Ḥafṣ', position: 2 },
+        { name: "Shuʿbah", abbreviation: "Shuʿbah", position: 1 }
       ],
       'Nāfiʿ' => [
         { name: 'Qālūn', abbreviation: 'Qālūn', position: 1 },
