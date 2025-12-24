@@ -11,7 +11,9 @@ module Api
 
           @verse = Verse.find_by!(chapter_id: chapter_num, verse_number: verse_num)
 
-          @junctures = QiraatJuncture.for_verse(@verse.id)
+          # Only include approved junctures in public API
+          @junctures = QiraatJuncture.approved
+                                     .for_verse(@verse.id)
                                      .includes(:localized_contents)
                                      .order(:position)
 
@@ -39,7 +41,9 @@ module Api
           @chapter = Chapter.find(params[:chapter_number])
 
           # Use scope to join through segments
-          base_scope = QiraatJuncture.for_chapter(@chapter.id)
+          # Only include approved junctures in public API
+          base_scope = QiraatJuncture.approved
+                                     .for_chapter(@chapter.id)
                                      .includes(:localized_contents)
                                      .order(:position)
 
@@ -58,7 +62,8 @@ module Api
 
         # GET /api/qdc/qiraat/junctures/:id
         def show
-          @juncture = QiraatJuncture.includes(
+          # Only include approved junctures in public API
+          @juncture = QiraatJuncture.approved.includes(
             :localized_contents,
             { qiraat_juncture_segments: :verse },
             qiraat_readings: [

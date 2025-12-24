@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_12_18_163500) do
+ActiveRecord::Schema[7.0].define(version: 2025_12_24_164230) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -534,14 +534,14 @@ ActiveRecord::Schema[7.0].define(version: 2025_12_18_163500) do
     t.bigint "language_id", null: false
     t.string "content_type", null: false
     t.text "text"
+    t.text "short_text"
+    t.jsonb "metadata", default: {}
+    t.string "source"
     t.bigint "resource_content_id"
+    t.string "language_name"
     t.integer "position", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "language_name"
-    t.string "source"
-    t.jsonb "metadata", default: {}
-    t.text "short_text"
     t.index ["content_type"], name: "index_localized_contents_on_content_type"
     t.index ["language_id"], name: "index_localized_contents_on_language_id"
     t.index ["resource_content_id"], name: "index_localized_contents_on_resource_content_id"
@@ -823,6 +823,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_12_18_163500) do
     t.string "flags", default: [], array: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "approved", default: false, null: false
+    t.index ["approved"], name: "index_qiraat_junctures_on_approved"
     t.index ["hizb_number"], name: "index_qiraat_junctures_on_hizb_number"
     t.index ["juz_number"], name: "index_qiraat_junctures_on_juz_number"
   end

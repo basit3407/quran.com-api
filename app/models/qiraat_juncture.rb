@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
 # == Schema Information
-# Schema version: 20251216192523
+# Schema version: 20251224164230
 #
 # Table name: qiraat_junctures
 #
 #  id          :bigint           not null, primary key
+#  approved    :boolean          default(FALSE), not null
 #  flags       :string           default([]), is an Array
 #  hizb_number :integer
 #  juz_number  :integer
@@ -15,6 +16,7 @@
 #
 # Indexes
 #
+#  index_qiraat_junctures_on_approved     (approved)
 #  index_qiraat_junctures_on_hizb_number  (hizb_number)
 #  index_qiraat_junctures_on_juz_number   (juz_number)
 #
@@ -56,6 +58,7 @@ class QiraatJuncture < ApplicationRecord
   scope :with_segments, -> { includes(qiraat_juncture_segments: [:verse, :start_word, :end_word]) }
   scope :with_localized_content, -> { includes(:localized_contents) }
   scope :ordered, -> { order(:position) }
+  scope :approved, -> { where(approved: true) }
 
   # Callbacks
   before_validation :set_default_position, on: :create
