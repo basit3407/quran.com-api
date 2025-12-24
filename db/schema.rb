@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
+ActiveRecord::Schema[7.0].define(version: 2025_12_18_163500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -275,16 +275,13 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
     t.string "metadata_type", null: false
     t.text "content", null: false
     t.integer "language_id", null: false
-    t.string "language_name"
-    t.boolean "is_active", default: true
+    t.integer "resource_content_id"
+    t.boolean "is_active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["chapter_id", "is_active"], name: "index_chapter_metadata_on_chapter_id_and_is_active"
-    t.index ["chapter_id", "metadata_type", "is_active"], name: "index_chapter_metadata_on_chapter_type_active"
-    t.index ["chapter_id", "metadata_type"], name: "index_chapter_metadata_on_chapter_id_and_metadata_type"
-    t.index ["chapter_id"], name: "index_chapter_metadata_on_chapter_id"
-    t.index ["language_id", "is_active"], name: "index_chapter_metadata_on_language_active"
-    t.index ["language_id"], name: "index_chapter_metadata_on_language_id"
+    t.index ["chapter_id", "language_id", "metadata_type", "is_active"], name: "index_chapter_metadata_on_query_pattern"
+    t.index ["resource_content_id"], name: "index_chapter_metadata_on_resource_content_id"
+    t.check_constraint "metadata_type::text = ANY (ARRAY['summary'::character varying, 'suggestion'::character varying]::text[])", name: "check_metadata_type"
   end
 
   create_table "chapters", id: :serial, force: :cascade do |t|
@@ -529,6 +526,29 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
     t.datetime "updated_at", precision: nil, null: false
     t.integer "words_count"
     t.integer "uniq_words_count"
+  end
+
+  create_table "localized_contents", force: :cascade do |t|
+    t.string "resource_type", null: false
+    t.bigint "resource_id", null: false
+    t.bigint "language_id", null: false
+    t.string "content_type", null: false
+    t.text "text"
+    t.bigint "resource_content_id"
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "language_name"
+    t.string "source"
+    t.jsonb "metadata", default: {}
+    t.text "short_text"
+    t.index ["content_type"], name: "index_localized_contents_on_content_type"
+    t.index ["language_id"], name: "index_localized_contents_on_language_id"
+    t.index ["resource_content_id"], name: "index_localized_contents_on_resource_content_id"
+    t.index ["resource_type", "resource_id", "language_id", "content_type", "position"], name: "index_localized_contents_unique", unique: true
+    t.index ["resource_type", "resource_id", "language_id", "content_type"], name: "index_localized_contents_on_resource_lang_type"
+    t.index ["resource_type", "resource_id", "language_id"], name: "index_localized_contents_on_resource_and_language"
+    t.index ["resource_type", "resource_id"], name: "index_localized_contents_on_resource"
   end
 
   create_table "manzils", force: :cascade do |t|
@@ -780,12 +800,134 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
     t.index ["text"], name: "index_navigation_search_records_on_text"
   end
 
+  create_table "qiraat_juncture_segments", force: :cascade do |t|
+    t.bigint "qiraat_juncture_id", null: false
+    t.bigint "verse_id", null: false
+    t.bigint "start_word_id", null: false
+    t.bigint "end_word_id", null: false
+    t.integer "position", default: 0, null: false
+    t.string "verse_key"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["end_word_id"], name: "index_qiraat_juncture_segments_on_end_word_id"
+    t.index ["qiraat_juncture_id", "position"], name: "idx_juncture_segments_on_juncture_position"
+    t.index ["qiraat_juncture_id"], name: "index_qiraat_juncture_segments_on_qiraat_juncture_id"
+    t.index ["start_word_id"], name: "index_qiraat_juncture_segments_on_start_word_id"
+    t.index ["verse_id"], name: "index_qiraat_juncture_segments_on_verse_id"
+  end
+
+  create_table "qiraat_junctures", force: :cascade do |t|
+    t.integer "juz_number"
+    t.integer "hizb_number"
+    t.integer "position", default: 0
+    t.string "flags", default: [], array: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["hizb_number"], name: "index_qiraat_junctures_on_hizb_number"
+    t.index ["juz_number"], name: "index_qiraat_junctures_on_juz_number"
+  end
+
+  create_table "qiraat_readers", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "abbreviation", null: false
+    t.integer "death_year_hijri"
+    t.integer "death_year_gregorian"
+    t.integer "position"
+    t.jsonb "name_translations", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["abbreviation"], name: "index_qiraat_readers_on_abbreviation", unique: true
+    t.index ["position"], name: "index_qiraat_readers_on_position"
+  end
+
+  create_table "qiraat_reading_attributions", force: :cascade do |t|
+    t.bigint "qiraat_reading_id", null: false
+    t.bigint "qiraat_reader_id"
+    t.bigint "qiraat_transmitter_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["qiraat_reader_id"], name: "index_qiraat_reading_attributions_on_qiraat_reader_id"
+    t.index ["qiraat_reading_id", "qiraat_reader_id", "qiraat_transmitter_id"], name: "index_qiraat_attributions_unique", unique: true
+    t.index ["qiraat_reading_id"], name: "index_qiraat_reading_attributions_on_qiraat_reading_id"
+    t.index ["qiraat_transmitter_id"], name: "index_qiraat_reading_attributions_on_qiraat_transmitter_id"
+  end
+
+  create_table "qiraat_reading_explanation_memberships", force: :cascade do |t|
+    t.bigint "qiraat_reading_id", null: false
+    t.bigint "qiraat_reading_explanation_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["qiraat_reading_explanation_id"], name: "idx_qr_expl_memb_explanation"
+    t.index ["qiraat_reading_id", "qiraat_reading_explanation_id"], name: "idx_qr_expl_membership_unique", unique: true
+    t.index ["qiraat_reading_id"], name: "idx_qr_expl_memb_reading"
+  end
+
+  create_table "qiraat_reading_explanations", force: :cascade do |t|
+    t.string "source"
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["position"], name: "index_qiraat_reading_explanations_on_position"
+    t.index ["source"], name: "index_qiraat_reading_explanations_on_source"
+  end
+
+  create_table "qiraat_reading_translation_memberships", force: :cascade do |t|
+    t.bigint "qiraat_reading_id", null: false
+    t.bigint "qiraat_reading_translation_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["qiraat_reading_id", "qiraat_reading_translation_id"], name: "idx_qr_trans_membership_unique", unique: true
+    t.index ["qiraat_reading_id"], name: "idx_qr_trans_memb_on_reading"
+    t.index ["qiraat_reading_translation_id"], name: "idx_qr_trans_memb_on_trans"
+  end
+
+  create_table "qiraat_reading_translations", force: :cascade do |t|
+    t.string "source"
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["position"], name: "index_qiraat_reading_translations_on_position"
+    t.index ["source"], name: "index_qiraat_reading_translations_on_source"
+  end
+
+  create_table "qiraat_readings", force: :cascade do |t|
+    t.bigint "qiraat_juncture_id", null: false
+    t.string "text_uthmani", null: false
+    t.string "text_imlaei"
+    t.string "grammatical_form"
+    t.string "root_letters"
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "color", default: "#f5f5f5"
+    t.index ["qiraat_juncture_id", "position"], name: "index_qiraat_readings_on_juncture_and_position"
+    t.index ["qiraat_juncture_id"], name: "index_qiraat_readings_on_qiraat_juncture_id"
+  end
+
+  create_table "qiraat_transmitters", force: :cascade do |t|
+    t.bigint "qiraat_reader_id", null: false
+    t.string "name", null: false
+    t.string "abbreviation"
+    t.integer "death_year_hijri"
+    t.integer "death_year_gregorian"
+    t.integer "position"
+    t.boolean "is_primary", default: false
+    t.jsonb "name_translations", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["abbreviation"], name: "index_qiraat_transmitters_on_abbreviation"
+    t.index ["qiraat_reader_id", "position"], name: "index_qiraat_transmitters_on_reader_and_position"
+    t.index ["qiraat_reader_id"], name: "index_qiraat_transmitters_on_qiraat_reader_id"
+  end
+
   create_table "qirat_types", force: :cascade do |t|
     t.string "name"
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "recitations_count", default: 0
+    t.bigint "qiraat_transmitter_id"
+    t.index ["qiraat_transmitter_id"], name: "index_qirat_types_on_qiraat_transmitter_id"
   end
 
   create_table "qr_authors", force: :cascade do |t|
@@ -1131,6 +1273,20 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
     t.datetime "updated_at", null: false
     t.index ["first_verse_id", "last_verse_id"], name: "index_rukus_on_first_verse_id_and_last_verse_id"
     t.index ["ruku_number"], name: "index_rukus_on_ruku_number"
+  end
+
+  create_table "short_descriptions", force: :cascade do |t|
+    t.integer "resource_id", null: false
+    t.string "resource_type", null: false
+    t.bigint "language_id", null: false
+    t.string "description", limit: 50
+    t.string "language_name"
+    t.integer "language_priority"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["language_id"], name: "index_short_descriptions_on_language_id"
+    t.index ["language_priority"], name: "index_short_descriptions_on_language_priority"
+    t.index ["resource_type", "resource_id"], name: "index_short_descriptions_on_resource_type_and_resource_id"
   end
 
   create_table "slugs", force: :cascade do |t|
@@ -1658,6 +1814,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
   add_foreign_key "ayah", "surah", primary_key: "surah_id", name: "ayah_surah_id_fkey"
   add_foreign_key "chapter_metadata", "chapters"
   add_foreign_key "chapter_metadata", "languages"
+  add_foreign_key "chapter_metadata", "resource_contents"
   add_foreign_key "char_type", "char_type", column: "parent_id", primary_key: "char_type_id", name: "char_type_parent_id_fkey", on_update: :cascade, on_delete: :nullify
   add_foreign_key "country_language_preferences", "audio_recitations", column: "default_reciter", on_delete: :cascade
   add_foreign_key "country_language_preferences", "languages", column: "default_locale", primary_key: "iso_code", on_delete: :cascade
@@ -1670,6 +1827,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
   add_foreign_key "file", "recitation", primary_key: "recitation_id", name: "_file_recitation_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "image", "ayah", column: "ayah_key", primary_key: "ayah_key", name: "image_ayah_key_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "image", "resource", primary_key: "resource_id", name: "image_resource_id_fkey", on_update: :cascade, on_delete: :cascade
+  add_foreign_key "localized_contents", "languages"
+  add_foreign_key "localized_contents", "resource_contents"
   add_foreign_key "morphology_derived_words", "verses"
   add_foreign_key "morphology_derived_words", "words"
   add_foreign_key "morphology_word_grammar_concepts", "words"
@@ -1680,12 +1839,27 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_122033) do
   add_foreign_key "morphology_word_verb_forms", "words"
   add_foreign_key "morphology_words", "verses"
   add_foreign_key "morphology_words", "words"
+  add_foreign_key "qiraat_juncture_segments", "qiraat_junctures"
+  add_foreign_key "qiraat_juncture_segments", "verses"
+  add_foreign_key "qiraat_juncture_segments", "words", column: "end_word_id"
+  add_foreign_key "qiraat_juncture_segments", "words", column: "start_word_id"
+  add_foreign_key "qiraat_reading_attributions", "qiraat_readers"
+  add_foreign_key "qiraat_reading_attributions", "qiraat_readings"
+  add_foreign_key "qiraat_reading_attributions", "qiraat_transmitters"
+  add_foreign_key "qiraat_reading_explanation_memberships", "qiraat_reading_explanations"
+  add_foreign_key "qiraat_reading_explanation_memberships", "qiraat_readings"
+  add_foreign_key "qiraat_reading_translation_memberships", "qiraat_reading_translations"
+  add_foreign_key "qiraat_reading_translation_memberships", "qiraat_readings"
+  add_foreign_key "qiraat_readings", "qiraat_junctures"
+  add_foreign_key "qiraat_transmitters", "qiraat_readers"
+  add_foreign_key "qirat_types", "qiraat_transmitters"
   add_foreign_key "recitation", "reciter", primary_key: "reciter_id", name: "recitation_reciter_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "recitation", "style", primary_key: "style_id", name: "recitation_style_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "resource", "author", primary_key: "author_id", name: "resource_author_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "resource", "language", column: "language_code", primary_key: "language_code", name: "resource_language_code_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "resource", "source", primary_key: "source_id", name: "resource_source_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "resource_api_version", "resource", primary_key: "resource_id", name: "resource_api_version_resource_id_fkey", on_update: :cascade, on_delete: :cascade
+  add_foreign_key "short_descriptions", "languages"
   add_foreign_key "tafsir", "resource", primary_key: "resource_id", name: "tafsir_resource_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "tafsir_ayah", "ayah", column: "ayah_key", primary_key: "ayah_key", name: "_tafsir_ayah_ayah_key_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "tafsir_ayah", "tafsir", primary_key: "tafsir_id", name: "_tafsir_ayah_tafsir_id_fkey", on_update: :cascade, on_delete: :cascade

@@ -1,0 +1,22 @@
+json.object! do
+  json.verse do
+    json.object! do
+      json.verse_key @verse.verse_key
+      json.verse_number @verse.verse_number
+      json.chapter_number @verse.chapter_id
+      json.text_uthmani @verse.text_uthmani
+    end
+  end
+
+  json.junctures do
+    json.array! @junctures do |juncture|
+      json.partial! 'juncture', juncture: juncture
+    end
+  end
+
+  json.meta do
+    json.object! do
+      json.total_junctures @junctures.count
+    end
+  end
+end
