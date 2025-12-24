@@ -1,0 +1,50 @@
+json.object! do
+  json.reading do
+    json.object! do
+      json.id @reading.id
+      json.juncture_id @reading.qiraat_juncture_id
+      json.verse_key @reading.verse_key
+      json.text_uthmani @reading.text_uthmani
+      json.text_imlaei @reading.text_imlaei
+      json.position @reading.position
+      json.color @reading.color
+      json.translation @reading.translation_for(@language)
+      json.transliteration @reading.transliteration_for(@language)
+
+      explanation = @reading.explanation_for(@language)
+      json.explanation explanation if explanation
+
+      explanations = @reading.explanations_for(@language)
+      json.explanations explanations if explanations.present?
+
+      json.attributed_to do
+        json.object! do
+          attributions = @reading.qiraat_reading_attributions
+
+          json.readers do
+            json.array! attributions.select { |a| a.qiraat_transmitter_id.nil? } do |attr|
+              json.object! do
+                 json.id attr.qiraat_reader_id
+                 json.name attr.qiraat_reader&.name
+                 json.abbreviation attr.qiraat_reader&.abbreviation
+                 json.scope 'all_transmitters'
+              end
+            end
+          end
+
+          json.transmitters do
+            json.array! attributions.select { |a| !a.qiraat_transmitter_id.nil? } do |attr|
+              json.object! do
+                json.id attr.qiraat_transmitter_id
+                json.name attr.qiraat_transmitter&.name
+                json.abbreviation attr.qiraat_transmitter&.abbreviation
+                json.reader_id attr.qiraat_reader_id
+                json.reader_name attr.qiraat_reader&.name
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
