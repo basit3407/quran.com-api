@@ -1077,10 +1077,16 @@
         /**
          * Build a map of reader ID -> color and transmitter ID -> color from readings
          * The color comes from the reading that each reader/transmitter is attributed to
+         *
+         * Returns:
+         * - readerColorMap: only readers assigned at READER-level (not via transmitter)
+         * - transmitterColorMap: transmitters assigned specifically
+         * - readerHasTransmitterAttr: readers that have transmitter-level attributions
          */
         function buildHeaderColorMap(readings) {
-            const readerColorMap = {};
-            const transmitterColorMap = {};
+            const readerColorMap = {};           // Reader assigned at reader-level only
+            const transmitterColorMap = {};      // Transmitter assigned specifically
+            const readerHasTransmitterAttr = {}; // Readers with transmitter-level attributions
 
             readings.forEach(reading => {
                 const color = normalizeReadingColor(reading, '#e0e0e0');
@@ -1088,15 +1094,19 @@
 
                 cells.forEach(cell => {
                     if (cell.transmitter_id) {
+                        // Transmitter-level attribution
                         transmitterColorMap[cell.transmitter_id] = color;
-                    }
-                    if (cell.reader_id) {
+                        if (cell.reader_id) {
+                            readerHasTransmitterAttr[cell.reader_id] = true;
+                        }
+                    } else if (cell.reader_id) {
+                        // Reader-level attribution (whole reader assigned)
                         readerColorMap[cell.reader_id] = color;
                     }
                 });
             });
 
-            return { readerColorMap, transmitterColorMap };
+            return { readerColorMap, transmitterColorMap, readerHasTransmitterAttr };
         }
 
         function columnSpanFor(col) {
@@ -1436,7 +1446,7 @@
          */
         function renderHeaderRows(structure, headerColors) {
             let html = '';
-            const { readerColorMap, transmitterColorMap } = headerColors || { readerColorMap: {}, transmitterColorMap: {} };
+            const { readerColorMap, transmitterColorMap, readerHasTransmitterAttr } = headerColors || { readerColorMap: {}, transmitterColorMap: {}, readerHasTransmitterAttr: {} };
 
             // IMPORTANT UI NOTE:
             // The matrix table can have >10 visual columns when a reader is split into transmitters.
@@ -1458,22 +1468,41 @@
             const renderQariGridRow = (colsToShow) => {
                 return colsToShow.map(col => {
                     const r = col.reader || {};
-                    // Get color from reading attribution (database) - fallback to light gray
-                    const bg = readerColorMap[r.id] || '#e9ecef';
+
+                    // Determine reader background color:
+                    // - If reader-level attribution exists: use that color
+                    // - If only transmitter-level: use gray (reader itself is not directly assigned)
+                    // - Otherwise: default gray
+                    let bg;
+                    if (readerColorMap[r.id]) {
+                        bg = readerColorMap[r.id];
+                    } else {
+                        bg = '#e9ecef'; // Gray - either unassigned or only transmitter-level
+                    }
+
                     // Use translated_name (localized) with fallback to name
                     const label = r.translated_name || r.name || r.abbreviation || '';
                     // Only show abbreviation in parentheses when using default name (not translated)
                     const subLabel = (!r.translated_name && r.abbreviation && r.name) ? ` <span style="font-weight: normal; opacity: 0.85;">(${r.abbreviation})</span>` : '';
 
                     const tx = (col.splitMode ? (col.transmitters || []) : []).slice();
+
+                    // Check if any transmitter has an attribution
+                    const hasAssignedTransmitter = tx.some(t => transmitterColorMap[t.id]);
+
+                    // Show indicator if reader has transmitter attributions (purple dot)
+                    const indicator = (readerHasTransmitterAttr[r.id] && tx.length > 0)
+                        ? '<span style="color:#9c27b0; font-size:20px; margin-left:4px;" title="Transmitter(s) assigned">●</span>'
+                        : '';
+
                     const txHtml = tx.length > 0
                         ? `
                             <div style="display:grid; grid-template-columns: repeat(${tx.length}, 1fr); border-top:1px solid #dee2e6;">
                                 ${tx.map((t, idx) => {
                             // Use translated_name (localized) with fallback to name
                             const tLabel = t?.translated_name || t?.name || t?.abbreviation || '';
-                            // Get transmitter color from reading attribution (database)
-                            const tBg = transmitterColorMap[t.id] || bg;
+                            // Get transmitter color from reading attribution (database) - fallback to gray
+                            const tBg = transmitterColorMap[t.id] || '#e9ecef';
                             const borderLeft = idx === 0 ? '' : 'border-left:1px solid #dee2e6;';
                             return `<div style="padding:8px 6px; font-size:11px; font-weight:600; background:${tBg}; ${borderLeft}">${tLabel}</div>`;
                         }).join('')}
@@ -1483,7 +1512,7 @@
 
                     return `
                         <div style="background:${bg}; border:1px solid #dee2e6; text-align:center; font-weight:bold; font-size:12px; overflow:hidden; border-radius:0.5rem;">
-                            <div style="padding:12px 8px;">${label}${subLabel}</div>
+                            <div style="padding:12px 8px;">${label}${subLabel}${indicator}</div>
                             ${txHtml}
                         </div>
                     `;
