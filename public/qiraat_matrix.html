@@ -1487,9 +1487,6 @@
 
                     const tx = (col.splitMode ? (col.transmitters || []) : []).slice();
 
-                    // Check if any transmitter has an attribution
-                    const hasAssignedTransmitter = tx.some(t => transmitterColorMap[t.id]);
-
                     // Show indicator if reader has transmitter attributions (purple dot)
                     const indicator = (readerHasTransmitterAttr[r.id] && tx.length > 0)
                         ? '<span style="color:#9c27b0; font-size:20px; margin-left:4px;" title="Transmitter(s) assigned">●</span>'
