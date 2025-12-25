@@ -126,6 +126,58 @@ RSpec.describe 'Api::Qdc::Qiraat::Junctures', type: :request do
       json = JSON.parse(response.body)
       expect(json['error']['code']).to eq('NOT_FOUND')
     end
+
+    context 'with unapproved junctures' do
+      before do
+        @unapproved_juncture = create(:qiraat_juncture, position: 3, approved: false)
+        create(:qiraat_juncture_segment,
+          qiraat_juncture: @unapproved_juncture,
+          verse: @verse,
+          start_word: @word1,
+          end_word: @word1,
+          position: 1
+        )
+      end
+
+      it 'only returns approved junctures' do
+        get '/api/qdc/qiraat/junctures/by_verse/12:12'
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        # Should only have the 2 approved junctures, not the unapproved one
+        expect(json['junctures'].length).to eq(2)
+        juncture_ids = json['junctures'].map { |j| j['id'] }
+        expect(juncture_ids).not_to include(@unapproved_juncture.id)
+      end
+
+      it 'returns 404 when accessing unapproved juncture directly' do
+        get "/api/qdc/qiraat/junctures/#{@unapproved_juncture.id}"
+
+        expect(response).to have_http_status(:not_found)
+        json = JSON.parse(response.body)
+        expect(json['error']['code']).to eq('NOT_FOUND')
+      end
+
+      it 'includes approved junctures in results' do
+        get '/api/qdc/qiraat/junctures/by_verse/12:12'
+
+        json = JSON.parse(response.body)
+        juncture_ids = json['junctures'].map { |j| j['id'] }
+
+        # Approved junctures should be included
+        expect(juncture_ids).to include(@juncture1.id)
+        expect(juncture_ids).to include(@juncture2.id)
+      end
+
+      it 'returns approved juncture when accessed directly' do
+        get "/api/qdc/qiraat/junctures/#{@juncture1.id}"
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json['juncture']['id']).to eq(@juncture1.id)
+      end
+    end
   end
 
   describe 'GET /api/qdc/qiraat/junctures/by_chapter/:chapter_number' do

@@ -78,6 +78,7 @@ FactoryBot.define do
     flags { ['grammatical'] }
     juz_number { 1 }
     hizb_number { 1 }
+    approved { true }
   end
 
   factory :qiraat_juncture_segment do
