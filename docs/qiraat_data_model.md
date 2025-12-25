@@ -58,14 +58,14 @@ A general-purpose, future-proof table for all localized content. This replaces t
 
 **Content Types:**
 
-| content_type           | Used By                                  | Description                          |
-| ---------------------- | ---------------------------------------- | ------------------------------------ |
-| `bio`                  | QiraatReader, QiraatTransmitter          | Biographical information             |
-| `translation`          | QiraatReadingTranslation, QiraatReading  | Localized translation of the reading |
-| `transliteration`      | QiraatReading                            | Academic transliteration             |
-| `explanation`          | QiraatReadingExplanation, QiraatJuncture | Scholarly explanation                |
-| `notes`                | QiraatReading                            | Footnotes/additional notes           |
-| `combined_translation` | QiraatJuncture                           | Unified translation for all readings |
+| content_type           | Used By                                                 | Description                                  |
+| ---------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| `bio`                  | QiraatReader, QiraatTransmitter                         | Biographical information                     |
+| `translation`          | QiraatReadingTranslation, QiraatReading                 | Localized translation of the reading         |
+| `transliteration`      | QiraatReading                                           | Academic transliteration                     |
+| `explanation`          | QiraatReading, QiraatReadingExplanation, QiraatJuncture | Scholarly explanation (individual or shared) |
+| `notes`                | QiraatReading                                           | Footnotes/additional notes                   |
+| `combined_translation` | QiraatJuncture                                          | Unified translation for all readings         |
 
 ---
 

@@ -904,18 +904,15 @@ class QiraatCsvImporter
       )
     end
 
-    # Add explanation
+    # Add explanation - stored directly on reading (not as shared explanation)
+    # The QiraatReadingExplanation mechanism is only for explanations that
+    # actually share across multiple readings
     if reading_data[:explanation].present?
-      exp = QiraatReadingExplanation.create!(source: 'Scholarly consensus', position: 1)
       LocalizedContent.create!(
-        resource: exp,
+        resource: reading,
         language: @english,
         content_type: 'explanation',
         text: reading_data[:explanation].strip
-      )
-      QiraatReadingExplanationMembership.create!(
-        qiraat_reading: reading,
-        qiraat_reading_explanation: exp
       )
     end
 
