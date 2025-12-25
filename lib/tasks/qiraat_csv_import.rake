@@ -35,13 +35,6 @@ namespace :qiraat do
 end
 
 class QiraatCsvImporter
-  SEED_COLORS = {
-    1 => '#FFFFFF',   # white
-    2 => '#B7D7A8',   # green
-    3 => '#A4C2F4',   # blue
-    4 => '#ea9999'    # pink
-  }.freeze
-
   SURAH_MAP = {
     # 1-10
     'Fatiha' => 1, 'Al-Fatiha' => 1, 'Al-Fatihah' => 1,
@@ -171,13 +164,7 @@ class QiraatCsvImporter
     'Nas' => 114, 'An-Nas' => 114
   }.freeze
 
-  # All known reader abbreviations for detection
-  READER_ABBREVIATIONS = [
-    'Ibn ʿĀmir', 'Ḥamzah', 'Khalaf', 'al-Kisāʾī', 'ʿĀṣim',
-    'Abū Jaʿfar', 'Nāfiʿ', 'Ibn Kathīr', 'Abū ʿAmr', 'Yaʿqūb'
-  ].freeze
 
-  TRANSMITTER_ABBREVIATIONS = ['Shuʿbah', 'Ḥafṣ', 'al-Bazzī', 'Qunbul', 'Qālūn', 'Warsh'].freeze
 
   def initialize(file_path)
     @file_path = file_path
@@ -277,8 +264,6 @@ class QiraatCsvImporter
 
     return if readings_data.empty?
 
-    # Parse reader attribution matrix from header rows
-    attribution_matrix = parse_attribution_matrix_from_rows(rows)
 
     # DYNAMIC: Find word positions by searching for the base text in the verse
     word_positions = find_word_positions(verses, base_text, readings_data)
@@ -314,7 +299,7 @@ class QiraatCsvImporter
     # Create readings (returns array of created readings with their translation info)
     created_readings = []
     readings_data.each_with_index do |rd, idx|
-      reading = create_reading(juncture, rd, idx + 1, juncture_info, attribution_matrix, verses)
+      reading = create_reading(juncture, rd, idx + 1, juncture_info, verses)
       created_readings << { reading: reading, data: rd }
     end
 
@@ -396,30 +381,7 @@ class QiraatCsvImporter
     end
   end
 
-  def parse_attribution_matrix_from_rows(rows)
-    matrix = { readers: [], transmitters: [], split_readers: [] }
 
-    rows[0..4].each do |row|
-      next if row.nil?
-
-      row.each_with_index do |cell, idx|
-        next if cell.nil?
-        cell_str = cell.to_s.strip
-
-        if READER_ABBREVIATIONS.include?(cell_str)
-          matrix[:readers] << { name: cell_str, column: idx }
-        elsif TRANSMITTER_ABBREVIATIONS.include?(cell_str)
-          matrix[:transmitters] << { name: cell_str, column: idx }
-          parent_col = matrix[:readers].select { |r| r[:column] <= idx }.max_by { |r| r[:column] }
-          if parent_col
-            matrix[:split_readers] << parent_col[:name] unless matrix[:split_readers].include?(parent_col[:name])
-          end
-        end
-      end
-    end
-
-    matrix
-  end
 
   def parse_combined_explanation_from_rows(rows)
     rows.each do |row|
@@ -469,9 +431,7 @@ class QiraatCsvImporter
 
     return if readings_data.empty?
 
-    # Parse reader attribution matrix from header rows
-    attribution_matrix = parse_attribution_matrix(lines)
-    puts "  Attribution matrix: #{attribution_matrix.inspect}" if attribution_matrix.any?
+
 
     # DYNAMIC: Find word positions by searching for the base text in the verse
     word_positions = find_word_positions(verses, base_text, readings_data)
@@ -508,7 +468,7 @@ class QiraatCsvImporter
     # Create readings (returns array of created readings with their translation info)
     created_readings = []
     readings_data.each_with_index do |rd, idx|
-      reading = create_reading(juncture, rd, idx + 1, juncture_info, attribution_matrix, verses)
+      reading = create_reading(juncture, rd, idx + 1, juncture_info, verses)
       created_readings << { reading: reading, data: rd }
     end
 
@@ -832,34 +792,7 @@ class QiraatCsvImporter
   # PARSE READER ATTRIBUTION MATRIX
   # The CSV header rows contain reader/transmitter names that indicate splits
   # ---------------------------------------------------------------------------
-  def parse_attribution_matrix(lines)
-    matrix = { readers: [], transmitters: [], split_readers: [] }
 
-    # Look at first few lines after juncture header for reader names
-    lines[0..4].each do |line|
-      row = CSV.parse_line(line) rescue []
-      next if row.nil?
-
-      row.each_with_index do |cell, idx|
-        next if cell.nil?
-        cell = cell.strip
-
-        if READER_ABBREVIATIONS.include?(cell)
-          matrix[:readers] << { name: cell, column: idx }
-        elsif TRANSMITTER_ABBREVIATIONS.include?(cell)
-          matrix[:transmitters] << { name: cell, column: idx }
-          # If transmitter is shown, the reader above is split
-          # Find which reader this transmitter belongs to
-          parent_col = matrix[:readers].select { |r| r[:column] <= idx }.max_by { |r| r[:column] }
-          if parent_col
-            matrix[:split_readers] << parent_col[:name] unless matrix[:split_readers].include?(parent_col[:name])
-          end
-        end
-      end
-    end
-
-    matrix
-  end
 
   # ---------------------------------------------------------------------------
   # PARSE READINGS
@@ -944,18 +877,12 @@ class QiraatCsvImporter
   # ---------------------------------------------------------------------------
   # CREATE READING
   # ---------------------------------------------------------------------------
-  def create_reading(juncture, reading_data, position, juncture_info, attribution_matrix, verses)
+  def create_reading(juncture, reading_data, position, juncture_info, verses)
     reading = QiraatReading.create!(
       qiraat_juncture: juncture,
       text_uthmani: reading_data[:arabic],
-      position: position,
-      color: SEED_COLORS[position] || SEED_COLORS[1]
+      position: position
     )
-
-    # DYNAMIC: Infer attributions from the matrix and reading position
-    # For now, we'll distribute readers evenly across readings if we can't determine from CSV
-    # This is a limitation of the format - colors aren't preserved in CSV
-    add_inferred_attributions(reading, position, juncture.qiraat_readings.count, attribution_matrix)
 
     # Add transliteration
     if reading_data[:transliteration].present?
@@ -977,18 +904,15 @@ class QiraatCsvImporter
       )
     end
 
-    # Add explanation
+    # Add explanation - stored directly on reading (not as shared explanation)
+    # The QiraatReadingExplanation mechanism is only for explanations that
+    # actually share across multiple readings
     if reading_data[:explanation].present?
-      exp = QiraatReadingExplanation.create!(source: 'Scholarly consensus', position: 1)
       LocalizedContent.create!(
-        resource: exp,
+        resource: reading,
         language: @english,
         content_type: 'explanation',
         text: reading_data[:explanation].strip
-      )
-      QiraatReadingExplanationMembership.create!(
-        qiraat_reading: reading,
-        qiraat_reading_explanation: exp
       )
     end
 
@@ -996,24 +920,5 @@ class QiraatCsvImporter
     reading
   end
 
-  def add_inferred_attributions(reading, position, total_readings, attribution_matrix)
-    # Get all readers
-    all_readers = @readers.values
 
-    # If there's only 1 reading, all readers use it
-    if total_readings == 1
-      all_readers.each do |reader|
-        QiraatReadingAttribution.create!(qiraat_reading: reading, qiraat_reader: reader)
-      end
-      return
-    end
-
-    # For multiple readings, we can't determine attribution from CSV format alone
-    # The original Excel had colored cells to show this
-    # For now, just add a note that attributions need manual review
-    puts "    ⚠️  Attributions could not be inferred from CSV (color data lost)"
-
-    # As a fallback, we won't add any attributions - they'll need to be added manually
-    # This is more honest than guessing wrong
-  end
 end

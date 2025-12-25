@@ -35,7 +35,9 @@ module Api
           @text_field = parse_text_field
 
           # Query junctures via their segments
+          # Only include approved junctures in public API
           base_scope = QiraatJuncture
+            .approved
             .joins(:qiraat_juncture_segments)
             .joins('INNER JOIN verses ON verses.id = qiraat_juncture_segments.verse_id')
             .where(verses: { chapter_id: @chapter.id })
@@ -73,7 +75,9 @@ module Api
           @verse = Verse.find_by!(chapter_id: chapter_num, verse_number: verse_num)
 
           # Query junctures that have segments referencing this verse
+          # Only include approved junctures in public API
           @junctures = QiraatJuncture
+            .approved
             .joins(:qiraat_juncture_segments)
             .where(qiraat_juncture_segments: { verse_id: @verse.id })
             .includes(matrix_includes)

@@ -155,6 +155,32 @@ RSpec.describe 'Api::Qdc::Qiraat::Matrix', type: :request do
       expect(json['error']['code']).to eq('NOT_FOUND')
     end
 
+    it 'excludes unapproved junctures from results' do
+      # Create an unapproved juncture for the same verse
+      unapproved_juncture = create(:qiraat_juncture, position: 99, approved: false)
+      create(:qiraat_juncture_segment,
+        qiraat_juncture: unapproved_juncture,
+        verse: @verse,
+        start_word: @word1,
+        end_word: @word1,
+        position: 1
+      )
+      create(:qiraat_reading, qiraat_juncture: unapproved_juncture, text_uthmani: 'unapproved')
+
+      get '/api/qdc/qiraat/matrix/by_verse/12:12'
+
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+
+      # Should only have the 1 approved juncture, not the unapproved one
+      expect(json['junctures'].length).to eq(1)
+      juncture_ids = json['junctures'].map { |j| j['id'] }
+      expect(juncture_ids).not_to include(unapproved_juncture.id)
+
+      # Positive test: approved juncture should be included
+      expect(juncture_ids).to include(@juncture.id)
+    end
+
     it 'includes translations and transliterations' do
       get '/api/qdc/qiraat/matrix/by_verse/12:12'
 

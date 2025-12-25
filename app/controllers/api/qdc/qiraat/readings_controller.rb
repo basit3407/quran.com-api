@@ -13,6 +13,11 @@ module Api
             qiraat_reading_explanations: :localized_contents
           ).find(params[:id])
 
+          # Return 404 if the reading's juncture is not approved
+          unless @reading.qiraat_juncture&.approved?
+            raise ActiveRecord::RecordNotFound
+          end
+
           render
         rescue ActiveRecord::RecordNotFound
           @error = {

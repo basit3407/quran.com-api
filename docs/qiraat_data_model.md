@@ -29,7 +29,6 @@ This document defines the data model for displaying Qirāʾāt (variant Quran re
 
 A general-purpose, future-proof table for all localized content. This replaces the pattern of creating separate `*_infos` tables for each resource type.
 
-
 | Field               | Type      | Required | Description                                              |
 | ------------------- | --------- | -------- | -------------------------------------------------------- |
 | id                  | PK        | ✓        | Auto-increment                                           |
@@ -59,15 +58,14 @@ A general-purpose, future-proof table for all localized content. This replaces t
 
 **Content Types:**
 
-
-| content_type           | Used By                                     | Description                          |
-| ---------------------- | ------------------------------------------- | ------------------------------------ |
-| `bio`                  | QiraatReader, QiraatTransmitter             | Biographical information             |
-| `translation`          | QiraatReadingTranslation, QiraatReading     | Localized translation of the reading |
-| `transliteration`      | QiraatReading                               | Academic transliteration             |
-| `explanation`          | QiraatReadingExplanation, QiraatJuncture    | Scholarly explanation                |
-| `notes`                | QiraatReading                               | Footnotes/additional notes           |
-| `combined_translation` | QiraatJuncture                              | Unified translation for all readings |
+| content_type           | Used By                                                 | Description                                  |
+| ---------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| `bio`                  | QiraatReader, QiraatTransmitter                         | Biographical information                     |
+| `translation`          | QiraatReadingTranslation, QiraatReading                 | Localized translation of the reading         |
+| `transliteration`      | QiraatReading                                           | Academic transliteration                     |
+| `explanation`          | QiraatReading, QiraatReadingExplanation, QiraatJuncture | Scholarly explanation (individual or shared) |
+| `notes`                | QiraatReading                                           | Footnotes/additional notes                   |
+| `combined_translation` | QiraatJuncture                                          | Unified translation for all readings         |
 
 ---
 
@@ -75,18 +73,17 @@ A general-purpose, future-proof table for all localized content. This replaces t
 
 Stores information about each of the 10 Qurrāʾ (Readers).
 
-
-| Field                | Type      | Required | Description                                      |
-| -------------------- | --------- | -------- | ------------------------------------------------ |
-| id                   | PK        | ✓        | Auto-increment                                   |
-| name                 | string    | ✓        | Default name, e.g., "Asim"                       |
-| abbreviation         | string    | ✓        | CSV key, e.g., "A" (unique)                      |
-| death_year_hijri     | integer   |          | e.g., 127                                        |
-| death_year_gregorian | integer   |          | e.g., 745                                        |
-| position             | integer   | ✓        | Display order (1-10)                             |
-| name_translations    | jsonb     |          | Cached names: `{"en":"Asim","ar":"عاصم"}`        |
-| created_at           | timestamp | ✓        |                                                  |
-| updated_at           | timestamp | ✓        |                                                  |
+| Field                | Type      | Required | Description                               |
+| -------------------- | --------- | -------- | ----------------------------------------- |
+| id                   | PK        | ✓        | Auto-increment                            |
+| name                 | string    | ✓        | Default name, e.g., "Asim"                |
+| abbreviation         | string    | ✓        | CSV key, e.g., "A" (unique)               |
+| death_year_hijri     | integer   |          | e.g., 127                                 |
+| death_year_gregorian | integer   |          | e.g., 745                                 |
+| position             | integer   | ✓        | Display order (1-10)                      |
+| name_translations    | jsonb     |          | Cached names: `{"en":"Asim","ar":"عاصم"}` |
+| created_at           | timestamp | ✓        |                                           |
+| updated_at           | timestamp | ✓        |                                           |
 
 **Localization:**
 
@@ -104,20 +101,19 @@ Stores information about each of the 10 Qurrāʾ (Readers).
 
 Stores information about each transmitter who narrated from a Reader.
 
-
-| Field                | Type      | Required | Description                                    |
-| -------------------- | --------- | -------- | ---------------------------------------------- |
-| id                   | PK        | ✓        | Auto-increment                                 |
-| qiraat_reader_id     | FK        | ✓        | References `qiraat_readers`                    |
-| name                 | string    | ✓        | Default name, e.g., "Hafs"                     |
-| abbreviation         | string    | ✓        | CSV key, e.g., "H", "S", "Q", "W"              |
-| death_year_hijri     | integer   |          |                                                |
-| death_year_gregorian | integer   |          |                                                |
-| position             | integer   | ✓        | Order under the reader                         |
-| is_primary           | boolean   |          | Primary transmitter (default: false)           |
-| name_translations    | jsonb     |          | Cached names: `{"en":"Hafs","ar":"حفص"}`       |
-| created_at           | timestamp | ✓        |                                                |
-| updated_at           | timestamp | ✓        |                                                |
+| Field                | Type      | Required | Description                              |
+| -------------------- | --------- | -------- | ---------------------------------------- |
+| id                   | PK        | ✓        | Auto-increment                           |
+| qiraat_reader_id     | FK        | ✓        | References `qiraat_readers`              |
+| name                 | string    | ✓        | Default name, e.g., "Hafs"               |
+| abbreviation         | string    | ✓        | CSV key, e.g., "H", "S", "Q", "W"        |
+| death_year_hijri     | integer   |          |                                          |
+| death_year_gregorian | integer   |          |                                          |
+| position             | integer   | ✓        | Order under the reader                   |
+| is_primary           | boolean   |          | Primary transmitter (default: false)     |
+| name_translations    | jsonb     |          | Cached names: `{"en":"Hafs","ar":"حفص"}` |
+| created_at           | timestamp | ✓        |                                          |
+| updated_at           | timestamp | ✓        |                                          |
 
 **Localization:**
 
@@ -136,16 +132,16 @@ Stores information about each transmitter who narrated from a Reader.
 
 Stores each location where readings differ (the "juncture" or موضع). Word references are stored in `qiraat_juncture_segments`.
 
-
-| Field       | Type      | Required | Description                                                   |
-| ----------- | --------- | -------- | ------------------------------------------------------------- |
-| id          | PK        | ✓        | Auto-increment                                                |
-| juz_number  | integer   |          | Denormalized for filtering                                    |
-| hizb_number | integer   |          | Denormalized for filtering                                    |
-| position    | integer   | ✓        | Order (default: 0)                                            |
+| Field       | Type      | Required | Description                                                                                                   |
+| ----------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| id          | PK        | ✓        | Auto-increment                                                                                                |
+| juz_number  | integer   |          | Denormalized for filtering                                                                                    |
+| hizb_number | integer   |          | Denormalized for filtering                                                                                    |
+| position    | integer   | ✓        | Order (default: 0)                                                                                            |
+| approved    | boolean   | ✓        | Whether juncture is visible in public APIs (default: false)                                                   |
 | flags       | string[]  |          | Tags: `grammatical`, `phonetic`, `morphological`, `semantic`, `dialectal`, `orthographic`, `recitation_style` |
-| created_at  | timestamp | ✓        |                                                               |
-| updated_at  | timestamp | ✓        |                                                               |
+| created_at  | timestamp | ✓        |                                                                                                               |
+| updated_at  | timestamp | ✓        |                                                                                                               |
 
 > **Note:** All verse/word references and text are stored in `qiraat_juncture_segments` and derived dynamically.
 
@@ -170,18 +166,17 @@ Stores each location where readings differ (the "juncture" or موضع). Word re
 
 Stores word ranges for each segment of a juncture. Supports cross-verse junctures.
 
-
-| Field              | Type      | Required | Description                                      |
-| ------------------ | --------- | -------- | ------------------------------------------------ |
-| id                 | PK        | ✓        | Auto-increment                                   |
-| qiraat_juncture_id | FK        | ✓        | References `qiraat_junctures`                    |
-| verse_id           | FK        | ✓        | References `verses`                              |
-| start_word_id      | FK        | ✓        | References `words` (first word in segment)       |
-| end_word_id        | FK        | ✓        | References `words` (last word in segment)        |
-| position           | integer   | ✓        | Order of segment within juncture (0, 1, 2...)    |
-| verse_key          | string    |          | Denormalized (e.g., "8:65")                      |
-| created_at         | timestamp | ✓        |                                                  |
-| updated_at         | timestamp | ✓        |                                                  |
+| Field              | Type      | Required | Description                                   |
+| ------------------ | --------- | -------- | --------------------------------------------- |
+| id                 | PK        | ✓        | Auto-increment                                |
+| qiraat_juncture_id | FK        | ✓        | References `qiraat_junctures`                 |
+| verse_id           | FK        | ✓        | References `verses`                           |
+| start_word_id      | FK        | ✓        | References `words` (first word in segment)    |
+| end_word_id        | FK        | ✓        | References `words` (last word in segment)     |
+| position           | integer   | ✓        | Order of segment within juncture (0, 1, 2...) |
+| verse_key          | string    |          | Denormalized (e.g., "8:65")                   |
+| created_at         | timestamp | ✓        |                                               |
+| updated_at         | timestamp | ✓        |                                               |
 
 **Derived Properties:**
 
@@ -214,19 +209,18 @@ Juncture ID: 1
 
 Stores each distinct reading variant for a juncture (language-neutral data only).
 
-
-| Field              | Type      | Required | Description                                 |
-| ------------------ | --------- | -------- | ------------------------------------------- |
-| id                 | PK        | ✓        | Auto-increment                              |
-| qiraat_juncture_id | FK        | ✓        | References `qiraat_junctures`               |
-| text_uthmani       | string    | ✓        | Arabic text: "فَأَزَلَّهُمَا"               |
-| text_imlaei        | string    |          | Alternative script                          |
-| grammatical_form   | string    |          | e.g., "Form II", "Active Voice"             |
-| root_letters       | string    |          | e.g., "ز ل ل" or "ز و ل" (Arabic only)      |
-| position           | integer   | ✓        | Display order (1-indexed)                   |
+| Field              | Type      | Required | Description                                              |
+| ------------------ | --------- | -------- | -------------------------------------------------------- |
+| id                 | PK        | ✓        | Auto-increment                                           |
+| qiraat_juncture_id | FK        | ✓        | References `qiraat_junctures`                            |
+| text_uthmani       | string    | ✓        | Arabic text: "فَأَزَلَّهُمَا"                            |
+| text_imlaei        | string    |          | Alternative script                                       |
+| grammatical_form   | string    |          | e.g., "Form II", "Active Voice"                          |
+| root_letters       | string    |          | e.g., "ز ل ل" or "ز و ل" (Arabic only)                   |
+| position           | integer   | ✓        | Display order (1-indexed)                                |
 | color              | string    |          | UI color for this reading (hex code, default: "#f5f5f5") |
-| created_at         | timestamp | ✓        |                                             |
-| updated_at         | timestamp | ✓        |                                             |
+| created_at         | timestamp | ✓        |                                                          |
+| updated_at         | timestamp | ✓        |                                                          |
 
 **Color Logic:**
 
@@ -259,15 +253,14 @@ Example: If Ibn ʿĀmir, Abū Jaʿfar, Nāfiʿ, Ibn Kathīr, Abū ʿAmr, Yaʿqū
 
 Links readings to Readers and optionally specific Transmitters. This single table replaces separate reader/transmitter join tables.
 
-
-| Field                 | Type      | Required | Description                            |
-| --------------------- | --------- | -------- | -------------------------------------- |
-| id                    | PK        | ✓        | Auto-increment                         |
-| qiraat_reading_id     | FK        | ✓        | References `qiraat_readings`           |
+| Field                 | Type      | Required | Description                                                            |
+| --------------------- | --------- | -------- | ---------------------------------------------------------------------- |
+| id                    | PK        | ✓        | Auto-increment                                                         |
+| qiraat_reading_id     | FK        | ✓        | References `qiraat_readings`                                           |
 | qiraat_reader_id      | FK        |          | References `qiraat_readers` (auto-derived from transmitter if not set) |
-| qiraat_transmitter_id | FK        |          | NULL = all transmitters of this reader |
-| created_at            | timestamp | ✓        |                                        |
-| updated_at            | timestamp | ✓        |                                        |
+| qiraat_transmitter_id | FK        |          | NULL = all transmitters of this reader                                 |
+| created_at            | timestamp | ✓        |                                                                        |
+| updated_at            | timestamp | ✓        |                                                                        |
 
 **Attribution Logic:**
 
@@ -305,7 +298,6 @@ Links readings to Readers and optionally specific Transmitters. This single tabl
 
 Stores shareable translations that can be linked to multiple readings. This supports the common case where multiple readings share the same semantic meaning and translation.
 
-
 | Field      | Type      | Required | Description                               |
 | ---------- | --------- | -------- | ----------------------------------------- |
 | id         | PK        | ✓        | Auto-increment                            |
@@ -329,14 +321,13 @@ Stores shareable translations that can be linked to multiple readings. This supp
 
 Many-to-many join table linking readings to their shared translations.
 
-
-| Field                           | Type      | Required | Description                               |
-| ------------------------------- | --------- | -------- | ----------------------------------------- |
-| id                              | PK        | ✓        | Auto-increment                            |
-| qiraat_reading_id               | FK        | ✓        | References `qiraat_readings`              |
-| qiraat_reading_translation_id   | FK        | ✓        | References `qiraat_reading_translations`  |
-| created_at                      | timestamp | ✓        |                                           |
-| updated_at                      | timestamp | ✓        |                                           |
+| Field                         | Type      | Required | Description                              |
+| ----------------------------- | --------- | -------- | ---------------------------------------- |
+| id                            | PK        | ✓        | Auto-increment                           |
+| qiraat_reading_id             | FK        | ✓        | References `qiraat_readings`             |
+| qiraat_reading_translation_id | FK        | ✓        | References `qiraat_reading_translations` |
+| created_at                    | timestamp | ✓        |                                          |
+| updated_at                    | timestamp | ✓        |                                          |
 
 **Unique Constraint:** `(qiraat_reading_id, qiraat_reading_translation_id)`
 
@@ -350,7 +341,6 @@ Many-to-many join table linking readings to their shared translations.
 ### 10. `qiraat_reading_explanations` - Shared Reading Explanations
 
 Stores shareable explanations that can be linked to multiple readings. This avoids data duplication when the same scholarly explanation applies to several reading variants.
-
 
 | Field      | Type      | Required | Description                            |
 | ---------- | --------- | -------- | -------------------------------------- |
@@ -375,14 +365,13 @@ Stores shareable explanations that can be linked to multiple readings. This avoi
 
 Many-to-many join table linking readings to their shared explanations.
 
-
-| Field                          | Type      | Required | Description                              |
-| ------------------------------ | --------- | -------- | ---------------------------------------- |
-| id                             | PK        | ✓        | Auto-increment                           |
-| qiraat_reading_id              | FK        | ✓        | References `qiraat_readings`             |
-| qiraat_reading_explanation_id  | FK        | ✓        | References `qiraat_reading_explanations` |
-| created_at                     | timestamp | ✓        |                                          |
-| updated_at                     | timestamp | ✓        |                                          |
+| Field                         | Type      | Required | Description                              |
+| ----------------------------- | --------- | -------- | ---------------------------------------- |
+| id                            | PK        | ✓        | Auto-increment                           |
+| qiraat_reading_id             | FK        | ✓        | References `qiraat_readings`             |
+| qiraat_reading_explanation_id | FK        | ✓        | References `qiraat_reading_explanations` |
+| created_at                    | timestamp | ✓        |                                          |
+| updated_at                    | timestamp | ✓        |                                          |
 
 **Unique Constraint:** `(qiraat_reading_id, qiraat_reading_explanation_id)`
 
@@ -455,16 +444,15 @@ Many-to-many join table linking readings to their shared explanations.
 
 These classifications describe the semantic relationship between variant readings at a juncture:
 
-
-| Type             | Arabic         | Description                                                         | Example                         |
-| ---------------- | -------------- | ------------------------------------------------------------------- | ------------------------------- |
-| `identical`      | متطابق         | Two linguistic options (dialects, pronunciation). Same meaning.     | Quds vs Qudus                   |
-| `near_identical` | شبه متطابق     | Same base meaning but different construction/grammar.               | fa-lā khawfa vs fa-lā khawfun   |
-| `complementary`  | متكامل         | Two distinct but non-contradictory meanings. Both valid.            | mālik vs malik (Owner vs King)  |
-| `layered`        | متراكب         | Requires applying to different scenarios to reconcile.              | Requires taʾwīl                 |
-| `complex`        | مشكل           | Non-contradictory reading requires stretching apparent senses.      | Needs tarjīḥ or tawaqquf        |
-| `contradictory`  | متناقض         | Readings that appear to conflict. Requires scholarly resolution.    | arjulakum vs arjulikum          |
-| `criticized`     | منتقد          | Reading considered difficult by some scholars. Often has a defense. | bihī wa-l-arḥāmi                |
+| Type             | Arabic     | Description                                                         | Example                        |
+| ---------------- | ---------- | ------------------------------------------------------------------- | ------------------------------ |
+| `identical`      | متطابق     | Two linguistic options (dialects, pronunciation). Same meaning.     | Quds vs Qudus                  |
+| `near_identical` | شبه متطابق | Same base meaning but different construction/grammar.               | fa-lā khawfa vs fa-lā khawfun  |
+| `complementary`  | متكامل     | Two distinct but non-contradictory meanings. Both valid.            | mālik vs malik (Owner vs King) |
+| `layered`        | متراكب     | Requires applying to different scenarios to reconcile.              | Requires taʾwīl                |
+| `complex`        | مشكل       | Non-contradictory reading requires stretching apparent senses.      | Needs tarjīḥ or tawaqquf       |
+| `contradictory`  | متناقض     | Readings that appear to conflict. Requires scholarly resolution.    | arjulakum vs arjulikum         |
+| `criticized`     | منتقد      | Reading considered difficult by some scholars. Often has a defense. | bihī wa-l-arḥāmi               |
 
 ---
 
@@ -472,47 +460,45 @@ These classifications describe the semantic relationship between variant reading
 
 ### Readers (qiraat_readers)
 
-
-| id | abbreviation | name       | position |
-| -- | ------------ | ---------- | -------- |
-| 1  | N            | Nafi       | 1        |
-| 2  | I            | Ibn Kathir | 2        |
-| 3  | B            | Abu Amr    | 3        |
-| 4  | M            | Ibn Amir   | 4        |
-| 5  | A            | Asim       | 5        |
-| 6  | Z            | Hamzah     | 6        |
-| 7  | K            | al-Kisai   | 7        |
-| 8  | J            | Abu Jafar  | 8        |
-| 9  | Y            | Yaqub      | 9        |
-| 10 | X            | Khalaf     | 10       |
+| id  | abbreviation | name       | position |
+| --- | ------------ | ---------- | -------- |
+| 1   | N            | Nafi       | 1        |
+| 2   | I            | Ibn Kathir | 2        |
+| 3   | B            | Abu Amr    | 3        |
+| 4   | M            | Ibn Amir   | 4        |
+| 5   | A            | Asim       | 5        |
+| 6   | Z            | Hamzah     | 6        |
+| 7   | K            | al-Kisai   | 7        |
+| 8   | J            | Abu Jafar  | 8        |
+| 9   | Y            | Yaqub      | 9        |
+| 10  | X            | Khalaf     | 10       |
 
 > **Abbreviation Key:** N = Nāfiʿ, M = Ibn ʿĀmir, B = Abū ʿAmr (Basrah), I = Ibn Kathīr, A = ʿĀṣim, Z = Ḥamzah, K = al-Kisāʾī, J = Abū Jaʿfar, Y = Yaʿqūb, X = Khalaf
 
 ### Transmitters (qiraat_transmitters)
 
-
-| id | reader_id | abbreviation | name          | is_primary | position |
-|----|-----------|--------------|---------------|------------|----------|
-| 1  | 1         | Q            | Qālūn        | true       | 1        |
-| 2  | 1         | W            | Warsh         | false      | 2        |
-| 3  | 2         | M1           | al-Bazzī     | true       | 1        |
-| 4  | 2         | M2           | Qunbul        | false      | 2        |
-| 5  | 3         | B1           | al-Dūrī      | true       | 1        |
-| 6  | 3         | B2           | al-Sūsī     | false      | 2        |
-| 7  | 4         | I1           | Hishām       | true       | 1        |
-| 8  | 4         | I2           | Ibn Dhakwān  | false      | 2        |
-| 9  | 5         | S            | Shuʿbah      | true       | 1        |
-| 10 | 5         | H            | Ḥafṣ        | false      | 2        |
-| 11 | 6         | Z1           | Khalaf←Ḥamzah| true      | 1        |
-| 12 | 6         | Z2           | Khallād      | false      | 2        |
-| 13 | 7         | K1           | Abū al-Ḥārith| true      | 1        |
-| 14 | 7         | K2           | al-Dūrī←Kisāʾī| false   | 2        |
-| 15 | 8         | J1           | Ibn Wardān   | true       | 1        |
-| 16 | 8         | J2           | Ibn Jammāz   | false      | 2        |
-| 17 | 9         | Y1           | Ruways        | true       | 1        |
-| 18 | 9         | Y2           | Rawḥ         | false      | 2        |
-| 19 | 10        | X1           | Isḥāq       | true       | 1        |
-| 20 | 10        | X2           | Idrīs        | false      | 2        |
+| id  | reader_id | abbreviation | name           | is_primary | position |
+| --- | --------- | ------------ | -------------- | ---------- | -------- |
+| 1   | 1         | Q            | Qālūn          | true       | 1        |
+| 2   | 1         | W            | Warsh          | false      | 2        |
+| 3   | 2         | M1           | al-Bazzī       | true       | 1        |
+| 4   | 2         | M2           | Qunbul         | false      | 2        |
+| 5   | 3         | B1           | al-Dūrī        | true       | 1        |
+| 6   | 3         | B2           | al-Sūsī        | false      | 2        |
+| 7   | 4         | I1           | Hishām         | true       | 1        |
+| 8   | 4         | I2           | Ibn Dhakwān    | false      | 2        |
+| 9   | 5         | S            | Shuʿbah        | true       | 1        |
+| 10  | 5         | H            | Ḥafṣ           | false      | 2        |
+| 11  | 6         | Z1           | Khalaf←Ḥamzah  | true       | 1        |
+| 12  | 6         | Z2           | Khallād        | false      | 2        |
+| 13  | 7         | K1           | Abū al-Ḥārith  | true       | 1        |
+| 14  | 7         | K2           | al-Dūrī←Kisāʾī | false      | 2        |
+| 15  | 8         | J1           | Ibn Wardān     | true       | 1        |
+| 16  | 8         | J2           | Ibn Jammāz     | false      | 2        |
+| 17  | 9         | Y1           | Ruways         | true       | 1        |
+| 18  | 9         | Y2           | Rawḥ           | false      | 2        |
+| 19  | 10        | X1           | Isḥāq          | true       | 1        |
+| 20  | 10        | X2           | Idrīs          | false      | 2        |
 
 > **Transmitter Abbreviation Key:**
 >
@@ -559,37 +545,37 @@ These classifications describe the semantic relationship between variant reading
 
 **qiraat_junctures:**
 
-| id | position | flags |
-|----|----------|-------|
-| 1  | 1        | []    |
+| id  | position | flags |
+| --- | -------- | ----- |
+| 1   | 1        | []    |
 
 **qiraat_juncture_segments:**
 
-| id | juncture_id | verse_id | start_word_id | end_word_id | position | verse_key |
-|----|-------------|----------|---------------|-------------|----------|-----------|
-| 1  | 1           | 4        | 10            | 10          | 0        | 1:4       |
+| id  | juncture_id | verse_id | start_word_id | end_word_id | position | verse_key |
+| --- | ----------- | -------- | ------------- | ----------- | -------- | --------- |
+| 1   | 1           | 4        | 10            | 10          | 0        | 1:4       |
 
 **qiraat_readings:**
 
-| id | juncture_id | text_uthmani | position | color   |
-|----|-------------|--------------|----------|---------|
-| 1  | 1           | مَالِكِ      | 1        | #f5f5f5 |
-| 2  | 1           | مَلِكِ       | 2        | #e8f5e9 |
+| id  | juncture_id | text_uthmani | position | color   |
+| --- | ----------- | ------------ | -------- | ------- |
+| 1   | 1           | مَالِكِ      | 1        | #f5f5f5 |
+| 2   | 1           | مَلِكِ       | 2        | #e8f5e9 |
 
 **qiraat_reading_attributions:**
 
 | reading_id | reader_id | transmitter_id | (Reader)       |
-|------------|-----------|----------------|----------------|
-| 1          | 5         | NULL           | A - ʿĀṣim     |
-| 1          | 7         | NULL           | K - al-Kisāʾī |
-| 1          | 9         | NULL           | Y - Yaʿqūb    |
+| ---------- | --------- | -------------- | -------------- |
+| 1          | 5         | NULL           | A - ʿĀṣim      |
+| 1          | 7         | NULL           | K - al-Kisāʾī  |
+| 1          | 9         | NULL           | Y - Yaʿqūb     |
 | 1          | 10        | NULL           | X - Khalaf     |
-| 2          | 1         | NULL           | N - Nāfiʿ     |
-| 2          | 8         | NULL           | J - Abū Jaʿfar|
-| 2          | 4         | NULL           | M - Ibn ʿĀmir |
-| 2          | 3         | NULL           | B - Abū ʿAmr  |
-| 2          | 2         | NULL           | I - Ibn Kathīr|
-| 2          | 6         | NULL           | Z - Ḥamzah    |
+| 2          | 1         | NULL           | N - Nāfiʿ      |
+| 2          | 8         | NULL           | J - Abū Jaʿfar |
+| 2          | 4         | NULL           | M - Ibn ʿĀmir  |
+| 2          | 3         | NULL           | B - Abū ʿAmr   |
+| 2          | 2         | NULL           | I - Ibn Kathīr |
+| 2          | 6         | NULL           | Z - Ḥamzah     |
 
 ---
 
@@ -599,11 +585,10 @@ These classifications describe the semantic relationship between variant reading
 
 **qiraat_reading_attributions:**
 
-
-| reading_id | reader_id | transmitter_id | Notes                    |
-| ---------- | --------- | -------------- | ------------------------ |
-| 10         | 5         | 9              | ʿĀṣim via Shuʿbah only   |
-| 11         | 5         | 10             | ʿĀṣim via Ḥafṣ only     |
+| reading_id | reader_id | transmitter_id | Notes                  |
+| ---------- | --------- | -------------- | ---------------------- |
+| 10         | 5         | 9              | ʿĀṣim via Shuʿbah only |
+| 11         | 5         | 10             | ʿĀṣim via Ḥafṣ only    |
 
 ---
 
@@ -613,11 +598,10 @@ These classifications describe the semantic relationship between variant reading
 
 **qiraat_juncture_segments:**
 
-
-| id | juncture_id | verse_id | start_word_id | end_word_id | position | verse_key |
-|----|-------------|----------|---------------|-------------|----------|-----------|
-| 1  | 5           | 1242     | 8650          | 8652        | 0        | 8:65      |
-| 2  | 5           | 1243     | 8660          | 8662        | 1        | 8:66      |
+| id  | juncture_id | verse_id | start_word_id | end_word_id | position | verse_key |
+| --- | ----------- | -------- | ------------- | ----------- | -------- | --------- |
+| 1   | 5           | 1242     | 8650          | 8652        | 0        | 8:65      |
+| 2   | 5           | 1243     | 8660          | 8662        | 1        | 8:66      |
 
 **Result:** `juncture.verse_key` returns "8:65-66", `juncture.cross_verse?` returns `true`
 
@@ -650,8 +634,8 @@ These classifications describe the semantic relationship between variant reading
           "translation": "Then he caused them to err",
           "color": "#f5f5f5",
           "readers": [
-            {"id": 1, "abbreviation": "N", "name": "Nāfiʿ"},
-            {"id": 4, "abbreviation": "M", "name": "Ibn ʿĀmir"}
+            { "id": 1, "abbreviation": "N", "name": "Nāfiʿ" },
+            { "id": 4, "abbreviation": "M", "name": "Ibn ʿĀmir" }
           ]
         },
         {
@@ -661,9 +645,7 @@ These classifications describe the semantic relationship between variant reading
           "transliteration": "fa-azālahumā",
           "translation": "Then he caused them to be removed",
           "color": "#e8f5e9",
-          "readers": [
-            {"id": 6, "abbreviation": "Z", "name": "Ḥamzah"}
-          ]
+          "readers": [{ "id": 6, "abbreviation": "Z", "name": "Ḥamzah" }]
         }
       ],
       "explanation": {
@@ -679,31 +661,29 @@ These classifications describe the semantic relationship between variant reading
 
 ## Tables Summary
 
-
-| # | Table                                     | Purpose                                                                                       |
-| - | ----------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 1 | `localized_contents`                      | **Unified polymorphic table** for all localized content (bio, translation, explanation, etc.) |
-| 2 | `qiraat_readers`                          | The 10 canonical Qurrāʾ                                                                       |
-| 3 | `qiraat_transmitters`                     | Rāwīs who narrated from readers                                                               |
-| 4 | `qiraat_junctures`                        | Points of variation (metadata only, no word refs)                                             |
-| 5 | `qiraat_juncture_segments`                | Word references for junctures (supports cross-verse)                                          |
-| 6 | `qiraat_readings`                         | Individual reading variants                                                                   |
-| 7 | `qiraat_reading_attributions`             | Unified join: readings ↔ readers/transmitters                                                 |
-| 8 | `qiraat_reading_translations`             | **Shareable localized translations** for readings                                             |
-| 9 | `qiraat_reading_translation_memberships`  | N:M join: readings ↔ translations                                                             |
-| 10| `qiraat_reading_explanations`             | **Shareable explanations** for readings                                                       |
-| 11| `qiraat_reading_explanation_memberships`  | N:M join: readings ↔ explanations                                                             |
+| #   | Table                                    | Purpose                                                                                       |
+| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 1   | `localized_contents`                     | **Unified polymorphic table** for all localized content (bio, translation, explanation, etc.) |
+| 2   | `qiraat_readers`                         | The 10 canonical Qurrāʾ                                                                       |
+| 3   | `qiraat_transmitters`                    | Rāwīs who narrated from readers                                                               |
+| 4   | `qiraat_junctures`                       | Points of variation (metadata only, no word refs)                                             |
+| 5   | `qiraat_juncture_segments`               | Word references for junctures (supports cross-verse)                                          |
+| 6   | `qiraat_readings`                        | Individual reading variants                                                                   |
+| 7   | `qiraat_reading_attributions`            | Unified join: readings ↔ readers/transmitters                                                 |
+| 8   | `qiraat_reading_translations`            | **Shareable localized translations** for readings                                             |
+| 9   | `qiraat_reading_translation_memberships` | N:M join: readings ↔ translations                                                             |
+| 10  | `qiraat_reading_explanations`            | **Shareable explanations** for readings                                                       |
+| 11  | `qiraat_reading_explanation_memberships` | N:M join: readings ↔ explanations                                                             |
 
 **Total: 11 tables**
 
 ### Content Types in `localized_contents`
 
-
-| content_type           | Resource Types                                        | Fields Used                        |
-| ---------------------- | ----------------------------------------------------- | ---------------------------------- |
-| `bio`                  | QiraatReader, QiraatTransmitter                       | `text`, `metadata: {city, region}` |
-| `translation`          | QiraatReadingTranslation                              | `text`                             |
-| `transliteration`      | QiraatReading                                         | `text`                             |
-| `explanation`          | QiraatReadingExplanation, QiraatJuncture              | `text`, `source`                   |
-| `combined_translation` | QiraatJuncture                                        | `text`                             |
-| `notes`                | QiraatReading                                         | `text`                             |
+| content_type           | Resource Types                           | Fields Used                        |
+| ---------------------- | ---------------------------------------- | ---------------------------------- |
+| `bio`                  | QiraatReader, QiraatTransmitter          | `text`, `metadata: {city, region}` |
+| `translation`          | QiraatReadingTranslation                 | `text`                             |
+| `transliteration`      | QiraatReading                            | `text`                             |
+| `explanation`          | QiraatReadingExplanation, QiraatJuncture | `text`, `source`                   |
+| `combined_translation` | QiraatJuncture                           | `text`                             |
+| `notes`                | QiraatReading                            | `text`                             |
