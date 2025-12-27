@@ -158,6 +158,33 @@ namespace :qdc do
     get 'by_ayah/:ayah_key', action: 'by_ayah'
   end
 
+  # Qiraat (Variant Readings) API
+  namespace :qiraat, defaults: { format: :json } do
+    # Readers
+    get 'readers', to: 'readers#index'
+    get 'readers/:id', to: 'readers#show'
+
+    # Transmitters
+    get 'transmitters', to: 'transmitters#index'
+    get 'transmitters/:id', to: 'transmitters#show'
+
+    # Junctures - Get variation points for a verse/chapter/page
+    get 'junctures/by_verse/:verse_key', to: 'junctures#by_verse'
+    get 'junctures/by_chapter/:chapter_number', to: 'junctures#by_chapter'
+    get 'junctures/by_page/:page_number', to: 'junctures#by_page'
+    get 'junctures/by_juz/:juz_number', to: 'junctures#by_juz'
+    get 'junctures/:id', to: 'junctures#show'
+
+    # Readings - Get all readings for a juncture with attributions
+    get 'readings/by_juncture/:juncture_id', to: 'readings#by_juncture'
+    get 'readings/:id', to: 'readings#show'
+
+    # Matrix View - Optimized endpoint for table rendering
+    get 'matrix/by_verse/:verse_key', to: 'matrix#by_verse'
+    get 'matrix/by_chapter/:chapter_number', to: 'matrix#by_chapter'
+    get 'matrix/by_range', to: 'matrix#by_range'
+  end
+
   get 'ping', to: 'ping#ping'
   get '/', to: 'ping#ping'
 end

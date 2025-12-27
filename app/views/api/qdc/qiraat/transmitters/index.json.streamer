@@ -1,0 +1,33 @@
+json.object! do
+  json.transmitters do
+    json.array! @transmitters do |transmitter|
+      json.object! do
+        json.id transmitter.id
+        json.name transmitter.name
+        json.abbreviation transmitter.abbreviation
+        json.is_primary transmitter.is_primary
+        json.death_year_hijri transmitter.death_year_hijri
+        json.death_year_gregorian transmitter.death_year_gregorian
+        json.position transmitter.position
+        json.translated_name transmitter.translated_name_for(@language)
+
+        # Include reader object if association is loaded
+        if transmitter.association(:qiraat_reader).loaded? && transmitter.qiraat_reader
+          json.reader do
+            json.object! do
+              json.id transmitter.qiraat_reader.id
+              json.name transmitter.qiraat_reader.name
+              json.abbreviation transmitter.qiraat_reader.abbreviation
+            end
+          end
+        end
+      end
+    end
+  end
+
+  json.meta do
+    json.object! do
+      json.total @transmitters.count
+    end
+  end
+end

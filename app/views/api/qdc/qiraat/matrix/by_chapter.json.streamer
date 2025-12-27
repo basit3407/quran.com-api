@@ -1,0 +1,123 @@
+json.object! do
+  text_field = @text_field || 'text_uthmani'
+
+  json.chapter do
+    json.object! do
+      json.id @chapter.id
+      json.chapter_number @chapter.chapter_number
+      json.name_simple @chapter.name_simple
+    end
+  end
+
+  json.readers do
+    json.array! @readers do |reader|
+      json.object! do
+        json.id reader.id
+        json.name reader.name
+        json.abbreviation reader.abbreviation
+        json.position reader.position
+      end
+    end
+  end
+
+  json.transmitters do
+    json.array! @transmitters do |transmitter|
+      json.object! do
+        json.id transmitter.id
+        json.name transmitter.name
+        json.abbreviation transmitter.abbreviation
+        json.reader_id transmitter.qiraat_reader_id
+        json.position transmitter.position
+        json.is_primary transmitter.is_primary
+      end
+    end
+  end
+
+  json.junctures do
+    json.array! @junctures do |juncture|
+      json.object! do
+        json.id juncture.id
+        json.verse_key juncture.verse_key
+        json.position juncture.position
+        json.word_id juncture.word_id
+        json.word_position juncture.word_position
+        json.start_word_position juncture.effective_start_word_position
+        json.end_word_position juncture.effective_end_word_position
+        json.text juncture.juncture_text(text_field)
+
+        json.readings do
+          json.array! juncture.qiraat_readings.order(:position) do |reading|
+            json.object! do
+              json.id reading.id
+              # Reading text - uses text_uthmani/text_imlaei since readings don't have qpc_hafs
+              reading_text = case text_field
+                             when 'text_imlaei'
+                               reading.text_imlaei.presence || reading.text_uthmani
+                             else
+                               reading.text_uthmani
+                             end
+              json.text reading_text
+              json.text_uthmani reading.text_uthmani
+              json.text_imlaei reading.text_imlaei
+
+              # Translation with English fallback
+              translation_content = reading.localized_contents.find_by(language: @language, content_type: 'translation')
+              unless translation_content
+                english = Language.find_by(iso_code: 'en')
+                translation_content = reading.localized_contents.find_by(language: english, content_type: 'translation') if english && @language.iso_code != 'en'
+              end
+              json.translation translation_content&.text if translation_content
+
+              # Matrix data
+              json.matrix do
+                json.object! do
+                  attributions = reading.qiraat_reading_attributions.includes(:qiraat_reader, :qiraat_transmitter)
+                  reader_ids = []
+                  transmitter_ids = []
+                  cells = []
+
+                  attributions.each do |attr|
+                    if attr.qiraat_transmitter_id.nil?
+                      reader_ids << attr.qiraat_reader_id
+                      cells << {
+                        reader_id: attr.qiraat_reader_id,
+                        transmitter_id: nil,
+                        type: 'reader'
+                      }
+                    else
+                      transmitter_ids << attr.qiraat_transmitter_id
+                      cells << {
+                        reader_id: attr.qiraat_reader_id,
+                        transmitter_id: attr.qiraat_transmitter_id,
+                        type: 'transmitter'
+                      }
+                    end
+                  end
+
+                  json.readers reader_ids.uniq
+                  json.transmitters transmitter_ids.uniq
+                  json.cells cells
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  json.pagination do
+    json.object! do
+      json.merge! @pagination
+    end
+  end
+
+  json.meta do
+    json.object! do
+      json.language @language.iso_code
+      json.direction @language.direction
+      json.text_field text_field
+      json.generated_at Time.current.iso8601
+    end
+  end
+end
