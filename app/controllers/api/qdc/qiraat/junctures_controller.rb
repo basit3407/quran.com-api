@@ -14,6 +14,7 @@ module Api
           # Only include approved junctures in public API
           @junctures = QiraatJuncture.approved
                                      .for_verse(@verse.id)
+                                     .by_category(params[:category])
                                      .includes(:localized_contents)
                                      .order(:position)
 
@@ -44,6 +45,7 @@ module Api
           # Only include approved junctures in public API
           base_scope = QiraatJuncture.approved
                                      .for_chapter(@chapter.id)
+                                     .by_category(params[:category])
                                      .includes(:localized_contents)
                                      .order(:position)
 

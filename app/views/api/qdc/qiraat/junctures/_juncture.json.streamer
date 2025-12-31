@@ -8,6 +8,7 @@ json.object! do
   json.end_word_position juncture.effective_end_word_position
   json.text_uthmani juncture.juncture_text_uthmani
   json.text_imlaei juncture.juncture_text_imlaei
+  json.category juncture.category
   json.flags juncture.flags if juncture.flags.present?
 
   # Explanation
