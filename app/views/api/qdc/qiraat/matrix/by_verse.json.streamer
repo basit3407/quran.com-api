@@ -139,6 +139,7 @@ json.object! do
         json.verse_range computed_verse_range
         json.cross_verse computed_cross_verse
         json.text computed_juncture_text
+        json.category juncture.category
 
         # Segments - use pre-cached sorted segments and words cache
         json.segments do
