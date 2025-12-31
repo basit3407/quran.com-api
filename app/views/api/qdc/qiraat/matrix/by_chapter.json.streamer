@@ -44,6 +44,7 @@ json.object! do
         json.start_word_position juncture.effective_start_word_position
         json.end_word_position juncture.effective_end_word_position
         json.text juncture.juncture_text(text_field)
+        json.category juncture.category
 
         json.readings do
           json.array! juncture.qiraat_readings.order(:position) do |reading|

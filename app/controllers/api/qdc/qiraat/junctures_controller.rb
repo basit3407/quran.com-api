@@ -14,6 +14,7 @@ module Api
           # Only include approved junctures in public API
           @junctures = QiraatJuncture.approved
                                      .for_verse(@verse.id)
+                                     .by_category(sanitized_category)
                                      .includes(:localized_contents)
                                      .order(:position)
 
@@ -44,6 +45,7 @@ module Api
           # Only include approved junctures in public API
           base_scope = QiraatJuncture.approved
                                      .for_chapter(@chapter.id)
+                                     .by_category(sanitized_category)
                                      .includes(:localized_contents)
                                      .order(:position)
 
@@ -82,6 +84,15 @@ module Api
             message: "Juncture with id #{params[:id]} not found"
           }
           render 'api/qdc/qiraat/error', status: :not_found
+        end
+
+        private
+
+        # Sanitize category param to only accept valid values
+        def sanitized_category
+          category = params[:category]
+          return nil unless category.present?
+          QiraatJuncture::CATEGORIES.key?(category) ? category : nil
         end
       end
     end

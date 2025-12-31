@@ -139,6 +139,7 @@ Stores each location where readings differ (the "juncture" or موضع). Word re
 | hizb_number | integer   |          | Denormalized for filtering                                                                                    |
 | position    | integer   | ✓        | Order (default: 0)                                                                                            |
 | approved    | boolean   | ✓        | Whether juncture is visible in public APIs (default: false)                                                   |
+| category    | string    |          | Classification: `A` (Meaning), `B` (Orthographic), `C` (Phonetic)                                             |
 | flags       | string[]  |          | Tags: `grammatical`, `phonetic`, `morphological`, `semantic`, `dialectal`, `orthographic`, `recitation_style` |
 | created_at  | timestamp | ✓        |                                                                                                               |
 | updated_at  | timestamp | ✓        |                                                                                                               |

@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 # == Schema Information
-# Schema version: 20251224164230
+# Schema version: 20251231063033
 #
 # Table name: qiraat_junctures
 #
 #  id          :bigint           not null, primary key
 #  approved    :boolean          default(FALSE), not null
+#  category    :string
 #  flags       :string           default([]), is an Array
 #  hizb_number :integer
 #  juz_number  :integer
@@ -17,11 +18,25 @@
 # Indexes
 #
 #  index_qiraat_junctures_on_approved     (approved)
+#  index_qiraat_junctures_on_category     (category)
 #  index_qiraat_junctures_on_hizb_number  (hizb_number)
 #  index_qiraat_junctures_on_juz_number   (juz_number)
 #
 
 class QiraatJuncture < ApplicationRecord
+  # Category classifications for junctures
+  CATEGORIES = {
+    'A' => 'meaning_difference',      # Tangible difference in meaning/translation
+    'B' => 'orthographic_difference', # Words look different but mean the same
+    'C' => 'phonetic_difference'      # Difference solely in pronunciation (future)
+  }.freeze
+
+  CATEGORY_LABELS = {
+    'A' => 'Category A: Meaning Difference',
+    'B' => 'Category B: Orthographic (Same Meaning)',
+    'C' => 'Category C: Phonetic Only'
+  }.freeze
+
   FLAGS = %w[
     grammatical
     phonetic
@@ -41,6 +56,8 @@ class QiraatJuncture < ApplicationRecord
 
   # Validations
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :category,
+            inclusion: { in: CATEGORIES.keys, allow_blank: true }
 
   # Scopes
   scope :for_verse, ->(verse_id) {
@@ -54,6 +71,9 @@ class QiraatJuncture < ApplicationRecord
       .where(verses: { chapter_id: chapter_id })
       .distinct
   }
+  scope :by_category, ->(cat) { where(category: cat) if cat.present? }
+  scope :with_category, -> { where.not(category: nil) }
+  scope :without_category, -> { where(category: nil) }
   scope :with_readings, -> { includes(:qiraat_readings) }
   scope :with_segments, -> { includes(qiraat_juncture_segments: [:verse, :start_word, :end_word]) }
   scope :with_localized_content, -> { includes(:localized_contents) }
