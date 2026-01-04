@@ -8,8 +8,11 @@ class Audio::RecitationPresenter < BasePresenter
   ]
 
   def recitations
+    reciter_includes = [:translated_name]
+    reciter_includes << :localized_contents if include_bio?
+
     relation = Audio::Recitation
-                 .includes(:recitation_style, :qirat_type, reciter: :translated_name)
+                 .includes(:recitation_style, :qirat_type, reciter: reciter_includes)
                  .eager_load(reciter: :translated_name)
                  .order('priority ASC, language_priority DESC')
 
@@ -26,6 +29,17 @@ class Audio::RecitationPresenter < BasePresenter
         []
       end
     end
+  end
+
+  def include_bio?
+    reciter_fields.include?('bio')
+  end
+
+  # Get localized bio for a reciter with English fallback
+  # @param reciter [Reciter] The reciter to get bio for
+  # @return [String, nil] The localized bio text
+  def localized_bio_for(reciter)
+    reciter.localized_bio(language)
   end
 
   def approved_recitations
