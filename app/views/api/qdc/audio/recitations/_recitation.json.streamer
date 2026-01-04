@@ -1,14 +1,23 @@
 reciter = recitation.reciter
 style = recitation.recitation_style
 
+# Separate bio from other fields - bio needs localization
+bio_requested = fields.include?('bio')
+other_fields = fields.reject { |f| f == 'bio' }
+
 json.object! do
   json.id recitation.id
   json.reciter_id reciter.id
 
   json.extract! reciter,
                 :name,
-                *fields
- 
+                *other_fields
+
+  # Render localized bio with fallback to English then to static bio
+  if bio_requested
+    json.bio presenter.localized_bio_for(reciter)
+  end
+
   json.translated_name do
     translated_name = reciter.translated_name
     json.object! do

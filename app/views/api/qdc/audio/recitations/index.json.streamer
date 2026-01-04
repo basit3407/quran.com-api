@@ -6,7 +6,8 @@ json.object! do
     json.array! recitations do |recitation|
       json.partial! 'recitation',
                     recitation: recitation,
-                    fields: fields
+                    fields: fields,
+                    presenter: @presenter
     end
   end
 end
