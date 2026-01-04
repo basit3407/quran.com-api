@@ -2,6 +2,7 @@ json.object! do
   json.reciter do
     json.partial! 'recitation',
                   recitation: @presenter.recitation,
-                  fields: @presenter.reciter_fields
+                  fields: @presenter.reciter_fields,
+                  presenter: @presenter
   end
 end
