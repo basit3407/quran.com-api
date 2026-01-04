@@ -34,9 +34,11 @@ RSpec.describe Reciter do
     describe '.with_localized_content' do
       it 'preloads localized_contents association' do
         reciter = create(:reciter)
-        # Verify the scope returns the reciter and includes the association
+        create(:localized_content, :bio, resource: reciter)
+        # Verify the scope preloads the association without triggering additional queries
         loaded_reciter = Reciter.with_localized_content.find(reciter.id)
         expect(loaded_reciter.association(:localized_contents).loaded?).to be true
+        expect(loaded_reciter.localized_contents.size).to eq(1)
       end
     end
   end
@@ -56,7 +58,7 @@ RSpec.describe Reciter do
         end
 
         it 'returns the localized content for the requested language' do
-          content = reciter.reload.localized_contents.first
+          reciter.reload
           result = reciter.bio_for(arabic)
           expect(result).to be_a(LocalizedContent)
           expect(result.text).to eq('Arabic biography text')
