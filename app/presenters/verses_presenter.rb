@@ -69,6 +69,11 @@ class VersesPresenter < BasePresenter
     'hizb_number',
     'rub_el_hizb_number',
     'page_number',
+    'group_verse_key_from',
+    'group_verse_key_to',
+    'group_tafsir_id',
+    'start_verse_id',
+    'end_verse_id',
     'resource_name',
     'language_name',
     'language_id',
@@ -110,6 +115,7 @@ class VersesPresenter < BasePresenter
       result = @finder.find_with_key(
         params[:verse_key],
         fetch_locale,
+        words: render_words?,
         tafsirs: fetch_tafsirs,
         translations: fetch_translations,
         audio: fetch_audio

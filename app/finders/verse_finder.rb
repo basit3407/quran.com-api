@@ -122,4 +122,106 @@ class VerseFinder < Finder
       find_chapter
     end
   end
+
+  def expand_n_ayah_tafsirs(records, tafsir_resource_ids)
+    normalized_ids = normalize_resource_ids(tafsir_resource_ids)
+    return records if normalized_ids.empty?
+
+    n_ayah_ids = ResourceContent.n_verse.where(id: normalized_ids).pluck(:id)
+    return records if n_ayah_ids.empty?
+
+    verses = Array(records).compact
+    return records if verses.empty?
+
+    verse_ids = verses.map(&:id)
+    min_id = verse_ids.min
+    max_id = verse_ids.max
+    group_texts = {}
+
+    verses.each do |verse|
+      association = verse.association(:tafsirs)
+      association.loaded! unless association.loaded?
+      association.target ||= []
+
+      association.target.each do |tafsir|
+        next unless n_ayah_ids.include?(tafsir.resource_content_id)
+
+        key = tafsir_group_key(tafsir)
+        next unless key
+
+        group_texts[key] ||= tafsir.text if tafsir.text.present?
+      end
+    end
+
+    range_tafsirs = Tafsir
+                      .where(resource_content_id: n_ayah_ids)
+                      .where.not(start_verse_id: nil, end_verse_id: nil)
+                      .where('start_verse_id <= ? AND end_verse_id >= ?', max_id, min_id)
+
+    range_tafsirs.each do |tafsir|
+      key = tafsir_group_key(tafsir)
+      next unless key
+
+      group_texts[key] ||= tafsir.text if tafsir.text.present?
+    end
+
+    existing_keys_by_verse = {}
+
+    verses.each do |verse|
+      existing_keys = {}
+
+      verse.tafsirs.each do |tafsir|
+        next unless n_ayah_ids.include?(tafsir.resource_content_id)
+
+        key = tafsir_group_key(tafsir)
+        existing_keys[key] = true if key
+
+        if tafsir.text.blank?
+          group_text = group_texts[key]
+          tafsir.text = group_text if group_text.present?
+        end
+      end
+
+      existing_keys_by_verse[verse.id] = existing_keys
+    end
+
+    range_tafsirs.each do |tafsir|
+      key = tafsir_group_key(tafsir)
+      next unless key
+
+      if tafsir.text.blank?
+        group_text = group_texts[key]
+        tafsir.text = group_text if group_text.present?
+      end
+
+      verses.each do |verse|
+        next unless verse.id.between?(tafsir.start_verse_id, tafsir.end_verse_id)
+
+        existing_keys = existing_keys_by_verse[verse.id]
+        next if existing_keys[key]
+
+        verse.association(:tafsirs).target << tafsir
+        existing_keys[key] = true
+      end
+    end
+
+    records
+  end
+
+  def normalize_resource_ids(resource_ids)
+    return [] if resource_ids.blank?
+
+    Array(resource_ids)
+      .flat_map { |value| value.to_s.split(',') }
+      .map(&:to_i)
+      .uniq
+  end
+
+  def tafsir_group_key(tafsir)
+    if tafsir.group_tafsir_id.present?
+      [:group, tafsir.resource_content_id, tafsir.group_tafsir_id]
+    elsif tafsir.start_verse_id.present? && tafsir.end_verse_id.present?
+      [:range, tafsir.resource_content_id, tafsir.start_verse_id, tafsir.end_verse_id]
+    end
+  end
 end
