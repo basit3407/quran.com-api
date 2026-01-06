@@ -110,11 +110,15 @@ class Qdc::VerseFinder < ::VerseFinder
     order_clauses << 'translations.priority ASC' if translations.present?
     order_query = order_clauses.join(',').strip
 
-    if order_query.present?
-      @results.order(Arel.sql(order_query))
-    else
-      @results
-    end
+    records = if order_query.present?
+                @results.order(Arel.sql(order_query))
+              else
+                @results
+              end
+
+    records = records.to_a
+    expand_n_ayah_tafsirs(records, tafsirs)
+    records
   end
 
   def fetch_advance_copy

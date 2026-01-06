@@ -94,7 +94,7 @@ RSpec.describe 'API::V4 Verses tafsir filters', type: :request do
     create_tafsir(
       verse_two,
       multi_resource,
-      'Multi tafsir covering verses 1-2',
+      '',
       start_verse: verse_one,
       end_verse: verse_two,
       group_id: 700
@@ -143,6 +143,39 @@ RSpec.describe 'API::V4 Verses tafsir filters', type: :request do
       verse_ids = response_json['verses'].map { |verse| verse['id'] }
 
       expect(verse_ids).to eq(verse_ids.uniq)
+    end
+
+    it 'returns group metadata when requested' do
+      params = {
+        language: 'en',
+        tafsirs: multi_resource.id,
+        tafsir_fields: 'group_verse_key_from,group_verse_key_to,group_tafsir_id,start_verse_id,end_verse_id'
+      }
+      get endpoint, params: params
+
+      expect(response).to have_http_status(:ok)
+      tafsir = response_json['verses']
+                 .first['tafsirs']
+                 .find { |entry| entry['resource_id'] == multi_resource.id }
+
+      expect(tafsir['group_verse_key_from']).to eq(verse_one.verse_key)
+      expect(tafsir['group_verse_key_to']).to eq(verse_two.verse_key)
+      expect(tafsir['group_tafsir_id']).to eq(700)
+      expect(tafsir['start_verse_id']).to eq(verse_one.id)
+      expect(tafsir['end_verse_id']).to eq(verse_two.id)
+    end
+  end
+
+  describe 'GET /api/v4/verses/by_key/:verse_key' do
+    it 'returns n_ayah tafsir text for non-start verses' do
+      verse_key = Rack::Utils.escape_path(verse_two.verse_key)
+      get "/api/v4/verses/by_key/#{verse_key}", params: { language: 'en', tafsirs: multi_resource.id }
+
+      expect(response).to have_http_status(:ok)
+      tafsir = response_json['verse']['tafsirs'].find { |entry| entry['resource_id'] == multi_resource.id }
+
+      expect(tafsir).not_to be_nil
+      expect(tafsir['text']).to eq('Multi tafsir covering verses 1-2')
     end
   end
 
