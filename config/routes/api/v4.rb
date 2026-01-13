@@ -10,6 +10,7 @@ namespace :v4 do
     get 'by_manzil/:manzil_number', action: 'by_manzil'
     get 'by_ruku/:ruku_number', action: 'by_ruku'
     get 'by_key/:verse_key', action: 'by_key'
+    get 'by_range', action: 'by_range'
     get :filter
 
     get 'random', action: 'random'
@@ -24,6 +25,8 @@ namespace :v4 do
     get 'qaris/:id', to: 'recitations#show'
     get 'qaris/related/:id', to: 'recitations#related'
     get 'qaris/:id/audio_files/:ext', to: 'recitations#audio_files'
+    get 'reciters/:reciter_id/timestamp', to: 'recitations#timestamp'
+    get 'reciters/:reciter_id/lookup', to: 'recitations#lookup_ayah'
     get :sections, to: 'sections#index'
     get :surahs, to: 'chapters#index'
     get '/surahs/:id', to: 'chapters#show'

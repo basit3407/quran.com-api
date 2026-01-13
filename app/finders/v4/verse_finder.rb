@@ -46,7 +46,9 @@ class V4::VerseFinder < ::VerseFinder
   # TODO: it's time to merge v4 and qdc
   # We are writing lot of duplicate code now
   def fetch_verses_range(filter, mushaf: nil)
-    if 'by_juz' == filter
+    if 'by_range' == filter
+      @results = fetch_by_range
+    elsif 'by_juz' == filter
       @results = fetch_by_juz(mushaf: mushaf)
     else
       @results = send("fetch_#{filter}")
@@ -180,6 +182,67 @@ class V4::VerseFinder < ::VerseFinder
     params[:to] = verse_to
 
     min((start + per_page - 1), verse_to)
+  end
+
+  def fetch_by_range
+    raise(RestApi::RecordNotFound.new("From and to must be present.")) unless params[:from] && params[:to]
+    from_range = QuranUtils::VerseKey.new(params[:from])
+    from_verse_key_data = from_range.process_verse_key
+    to_range = QuranUtils::VerseKey.new(params[:to])
+    to_verse_key_data = to_range.process_verse_key
+    raise(RestApi::RecordNotFound.new("Verse key contains invalid data")) if from_verse_key_data.empty? || to_verse_key_data.empty?
+    raise(RestApi::RecordNotFound.new("Verse key contains invalid data")) unless from_verse_key_data.all? && to_verse_key_data.all?
+    params[:from] = get_ayah_id(params[:from])
+    params[:to] = get_ayah_id(params[:to])
+    raise(RestApi::RecordNotFound.new("Verse key contains out of range values")) if params[:from].nil? || params[:to].nil?
+    raise(RestApi::RecordNotFound.new("From should be smaller than to")) if params[:from] > params[:to]
+    from, to = get_ayah_range_to_load(params[:from], params[:to])
+    @results = rescope_verses('verse_index')
+                 .where('verses.verse_index >= ? AND verses.verse_index <= ?', from, to)
+  end
+
+  def get_ayah_range_to_load(first_verse_id, last_verse_id)
+    range_start = load_verse_from(first_verse_id)
+    range_end = load_verse_to(last_verse_id)
+    @total_records = records_count(range_start, range_end)
+    return overflow_range unless @total_records.positive?
+    pagy = Pagy.new(
+      count: @total_records,
+      page: current_page,
+      items: per_page,
+      overflow: :empty_page
+    )
+    @next_page = pagy.next
+    if pagy.overflow?
+      overflow_range
+    else
+      offset = range_start - 1
+      [offset + pagy.from, offset + pagy.to]
+    end
+  end
+
+  def overflow_range
+    [0, 0]
+  end
+
+  def records_count(range_start, range_end)
+    (range_end - range_start) + 1
+  end
+
+  def load_verse_from(default_from)
+    if params[:from].present?
+      max(params[:from].to_i, default_from)
+    else
+      default_from
+    end
+  end
+
+  def load_verse_to(default_to)
+    if params[:to].present?
+      min(params[:to].to_i, default_to)
+    else
+      default_to
+    end
   end
 
   def load_words(word_translation_lang)
