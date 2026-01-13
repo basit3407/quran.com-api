@@ -13,7 +13,9 @@ class V4::VerseFinder < ::VerseFinder
     words_ordering = words ? ', words.position ASC, word_translations.priority ASC' : ''
     translations_order = translations.present? ? ',translations.priority ASC' : ''
 
-    @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).sample
+    record = @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).sample
+    expand_n_ayah_tafsirs(record, tafsirs)
+    record
   end
 
   def find_with_key(key, language_code, words: true, tafsirs: false, translations: false, audio: false)
@@ -27,7 +29,9 @@ class V4::VerseFinder < ::VerseFinder
     words_ordering = words ? ', words.position ASC, word_translations.priority ASC' : ''
     translations_order = translations.present? ? ',translations.priority ASC' : ''
 
-    @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).first
+    record = @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).first
+    expand_n_ayah_tafsirs(record, tafsirs)
+    record
   end
 
   def load_verses(filter, language_code, mushaf: nil, words: true, tafsirs: false, translations: false, audio: false)
@@ -40,7 +44,9 @@ class V4::VerseFinder < ::VerseFinder
     words_ordering = words ? ', words.position ASC, word_translations.priority ASC' : ''
     translations_order = translations.present? ? ',translations.priority ASC' : ''
 
-    @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip)
+    records = @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).to_a
+    expand_n_ayah_tafsirs(records, tafsirs)
+    records
   end
 
   # TODO: it's time to merge v4 and qdc
@@ -270,6 +276,7 @@ class V4::VerseFinder < ::VerseFinder
   def load_tafsirs(tafsirs)
     @results = @results
                  .where(tafsirs: { resource_content_id: tafsirs })
+                 .distinct
                  .eager_load(:tafsirs)
   end
 

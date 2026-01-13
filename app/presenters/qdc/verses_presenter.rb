@@ -77,6 +77,7 @@ module Qdc
           params[:verse_key],
           fetch_word_translation_language,
           mushaf_id: get_mushaf_id,
+          words: render_words?,
           tafsirs: fetch_tafsirs,
           translations: fetch_translations,
           reciter: fetch_reciter
@@ -130,7 +131,8 @@ module Qdc
           approved_tafsirs = ResourceContent
                                .approved
                                .tafsirs
-                               .one_verse
+                               .verse_level
+                               .allowed_to_share
 
           params[:tafsirs] = approved_tafsirs
                                .where(id: tafsirs)
