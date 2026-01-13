@@ -392,6 +392,7 @@ DEPENDENCIES
   benchmark-ips
   bullet
   byebug
+  cld3 (= 3.4.3)
   countries (= 6.0.1)
   derailed_benchmarks
   elastic-transport

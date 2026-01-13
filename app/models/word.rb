@@ -120,4 +120,17 @@ class Word < ApplicationRecord
       text_uthmani_simple
     end
   end
+
+  def en_transliteration
+    value =
+      if has_attribute?(:en_transliteration)
+        begin
+          self[:en_transliteration]
+        rescue ActiveModel::MissingAttributeError
+          nil
+        end
+      end
+
+    value.presence || transliteration&.text
+  end
 end
