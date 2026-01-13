@@ -5,6 +5,8 @@ class Audio::SegmentPresenter < Audio::RecitationPresenter
   def lookup_ayah
     if chapter_id && recitation_id && timestamp
       segments = audio_file_segments
+      return nil if segments.blank?
+
       find_closest_segment(segments, timestamp)
     else
       nil
