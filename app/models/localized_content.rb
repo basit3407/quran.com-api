@@ -44,7 +44,7 @@ class LocalizedContent < ApplicationRecord
   # Validations
   validates :content_type, presence: true
   validates :content_type, inclusion: {
-    in: %w[bio name translation transliteration explanation combined_translation notes],
+    in: %w[bio name translation transliteration explanation combined_translation notes city],
     message: '%{value} is not a valid content type'
   }
   validates :text, presence: true, if: -> { short_text.blank? }
@@ -71,7 +71,7 @@ class LocalizedContent < ApplicationRecord
 
   # Class methods
   def self.content_types
-    %w[bio name translation transliteration explanation combined_translation notes]
+    %w[bio name translation transliteration explanation combined_translation notes city]
   end
 
   # Valid resource types for polymorphic association
