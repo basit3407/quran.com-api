@@ -1326,6 +1326,14 @@
                 }
                 html += `</div>`;
 
+                // Show text_simple if available (primary juncture text)
+                const junctureText = juncture.text_simple || juncture.text;
+                if (junctureText) {
+                    html += `<div class="juncture-text-display" style="padding: 1rem 1.5rem; background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%); border-bottom: 1px solid #ddd;">
+                        <span style="font-family: var(--arabic-font); font-size: 1.75rem; direction: rtl; display: block; text-align: right; color: #1a365d;">${junctureText}</span>
+                    </div>`;
+                }
+
                 // Render verse with highlighted segments for this juncture
                 const primaryColor = readings.length > 0 ? normalizeReadingColor(readings[0], '#ffd966') : '#ffd966';
                 if (segments.length > 0) {

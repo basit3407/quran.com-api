@@ -244,6 +244,54 @@ namespace :qiraat do
     puts "✅ Seeded #{QiraatReader.count} Qiraat readers"
   end
 
+  desc 'Seed reader cities (localized)'
+  task seed_reader_cities: :environment do
+    puts "\nSeeding reader cities..."
+
+    english = Language.find_by!(iso_code: 'en')
+    arabic = Language.find_by!(iso_code: 'ar')
+
+    # City data: [abbreviation, english_city, arabic_city]
+    reader_cities = {
+      'Ibn ʿĀmir'  => { en: 'Damascus', ar: 'دمشق' },
+      'Ḥamzah'     => { en: 'Kufah', ar: 'الكوفة' },
+      'Khalaf'     => { en: 'Baghdad', ar: 'بغداد' },
+      'al-Kisāʾī'  => { en: 'Kufah', ar: 'الكوفة' },
+      'ʿĀṣim'      => { en: 'Kufah', ar: 'الكوفة' },
+      'Abū Jaʿfar' => { en: 'Madinah', ar: 'المدينة' },
+      'Nāfiʿ'      => { en: 'Madinah', ar: 'المدينة' },
+      'Ibn Kathīr' => { en: 'Makkah', ar: 'مكة' },
+      'Abū ʿAmr'   => { en: 'Basrah', ar: 'البصرة' },
+      'Yaʿqūb'     => { en: 'Basrah', ar: 'البصرة' }
+    }
+
+    reader_cities.each do |abbr, cities|
+      reader = QiraatReader.find_by(abbreviation: abbr)
+      unless reader
+        puts "  ⚠️  Reader with abbreviation '#{abbr}' not found"
+        next
+      end
+
+      # English city
+      LocalizedContent.find_or_create_by!(
+        resource: reader,
+        language: english,
+        content_type: 'city'
+      ) { |lc| lc.text = cities[:en] }
+
+      # Arabic city
+      LocalizedContent.find_or_create_by!(
+        resource: reader,
+        language: arabic,
+        content_type: 'city'
+      ) { |lc| lc.text = cities[:ar] }
+
+      puts "  ✓ #{abbr}: #{cities[:en]} / #{cities[:ar]}"
+    end
+
+    puts "✅ Seeded reader cities"
+  end
+
   desc 'Seed transmitters for each reader'
   task seed_transmitters: :environment do
     puts "\nSeeding Qiraat Transmitters..."

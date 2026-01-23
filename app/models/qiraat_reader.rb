@@ -61,6 +61,17 @@ class QiraatReader < ApplicationRecord
     localized_content_for('bio', language)
   end
 
+  # Get localized city for the reader
+  # Returns the LocalizedContent object (use .text to get the string)
+  def city_for(language)
+    localized_content_for('city', language)
+  end
+
+  # Get city text with English fallback
+  def city_text_for(language)
+    localized_text_for('city', language)
+  end
+
   def translated_name_for(language)
     localized_text_for('name', language) || name
   end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # == Schema Information
-# Schema version: 20251231063033
+# Schema version: 20260121105029
 #
 # Table name: qiraat_junctures
 #
@@ -12,6 +12,7 @@
 #  hizb_number :integer
 #  juz_number  :integer
 #  position    :integer          default(0)
+#  text_simple :string
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null
 #

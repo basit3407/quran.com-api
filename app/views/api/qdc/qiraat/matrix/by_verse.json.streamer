@@ -23,6 +23,8 @@ json.object! do
         json.translated_name reader.translated_name_for(@language)
         json.abbreviation reader.abbreviation
         json.position reader.position
+        json.city reader.city_text_for(@language)
+        json.bio reader.bio_for(@language)&.text
       end
     end
   end
@@ -139,6 +141,7 @@ json.object! do
         json.verse_range computed_verse_range
         json.cross_verse computed_cross_verse
         json.text computed_juncture_text
+        json.text_simple juncture.text_simple
         json.category juncture.category
 
         # Segments - use pre-cached sorted segments and words cache
