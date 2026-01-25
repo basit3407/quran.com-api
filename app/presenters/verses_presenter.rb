@@ -234,6 +234,72 @@ class VersesPresenter < BasePresenter
     end
   end
 
+  def single_verse_action?
+    verses_filter == 'by_key'
+  end
+
+  # Related verses are only available for single verse endpoints (by_key)
+  # This prevents unnecessary queries for multiple verse endpoints
+  def render_related_verses?
+    strong_memoize :render_related_verses do
+      single_verse_action? && params[:related_verses].to_s == 'true'
+    end
+  end
+
+  # Get related verses for a specific verse
+  # @param verse [Verse] The verse to find relations for
+  # @return [Array] Related verse records
+  def related_verses_for(verse)
+    @current_verse = verse
+    @related_verses ||= RelatedVerse.related_to(verse, language: language).to_a
+  end
+
+  # Get chapters for related verses
+  # @return [Hash] Chapters indexed by id
+  def chapters_for_related_verses
+    @related_chapters ||= begin
+      return {} if @related_verses.blank?
+
+      other_verse_ids = @related_verses.map { |rv| rv.other_verse_for(@current_verse.id).id }
+      Chapter.for_related_verses(other_verse_ids, language)
+    end
+  end
+
+  # Preload related verses lookup for a collection of verses
+  # This should be called before iterating over verses to avoid N+1 queries
+  # @param verses [Array<Verse>] The verses to preload for
+  def preload_related_verses_lookup(verses)
+    verse_ids = verses.map(&:id)
+    
+    # Get all verse IDs that have approved related verses in one query
+    ids_with_relations = RelatedVerse
+      .where(approved: true)
+      .where('verse_id IN (?) OR related_verse_id IN (?)', verse_ids, verse_ids)
+      .pluck(:verse_id, :related_verse_id)
+      .flatten
+      .uniq
+    
+    @related_verses_lookup = verse_ids.each_with_object({}) do |id, hash|
+      hash[id] = ids_with_relations.include?(id)
+    end
+  end
+
+  # Check if a verse has any related verses
+  # Uses preloaded lookup if available, otherwise falls back to individual query
+  # @param verse [Verse] The verse to check
+  # @return [Boolean] True if the verse has related verses
+  def has_related_verses?(verse)
+    if @related_verses_lookup
+      @related_verses_lookup[verse.id] || false
+    else
+      RelatedVerse.for_verse(verse.id).approved.exists?
+    end
+  end
+
+  def get_language
+    language
+  end
+
   protected
 
   def chapter_ids

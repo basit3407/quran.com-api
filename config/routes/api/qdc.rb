@@ -85,6 +85,11 @@ namespace :qdc do
     get 'random', action: 'random'
   end
 
+  # Related verses routes
+  namespace :related_verses do
+    get 'by_key/:verse_key', action: 'by_key'
+  end
+
   get :search, to: 'search#search'
   get :navigate, to: 'search#navigate'
 

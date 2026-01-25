@@ -76,7 +76,7 @@ class LocalizedContent < ApplicationRecord
 
   # Valid resource types for polymorphic association
   def self.valid_resource_types
-    %w[QiraatReader QiraatTransmitter QiraatReading QiraatReadingExplanation QiraatReadingTranslation QiraatJuncture Reciter]
+    %w[QiraatReader QiraatTransmitter QiraatReading QiraatReadingExplanation QiraatReadingTranslation QiraatJuncture Reciter RelationType]
   end
 
   # Instance methods
