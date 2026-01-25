@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+other_verse = related_verse.other_verse_for(current_verse_id)
+chapter = chapters[other_verse.chapter_id]
+language = @presenter.get_language
+
+json.object! do
+  json.id related_verse.id
+  json.verse_id other_verse.id
+  json.verse_key other_verse.verse_key
+  json.relation related_verse.relation_type.localized_name_for(language)
+  json.chapter_name chapter&.display_name_for(language)
+end

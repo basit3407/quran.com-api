@@ -4,6 +4,7 @@ include_words = @presenter.render_words?
 include_translations = @presenter.render_translations?
 include_tafsirs = @presenter.render_tafsirs?
 include_segments = @presenter.render_segments?
+include_related_verses = @presenter.render_related_verses?
 
 fields = @presenter.verse_fields
 word_fields = @presenter.word_fields
@@ -24,6 +25,7 @@ json.object! do
                     :manzil_number,
                     :sajdah_number, *fields
 
+      json.has_related_verses @presenter.has_related_verses?(verse)
       json.page_number verse.get_page_number_for(mushaf: mushaf_id)
       json.juz_number verse.get_juz_number_for(mushaf_type: mushaf_type)
 
@@ -55,6 +57,18 @@ json.object! do
       if include_tafsirs
         json.tafsirs do
           json.array! verse.tafsirs, partial: 'tafsir', as: :tafsir, locals: { fields: tafsir_fields }
+        end
+      end
+
+      if include_related_verses
+        related_verses = @presenter.related_verses_for(verse)
+        chapters = @presenter.chapters_for_related_verses
+
+        json.related_verses do
+          json.array! related_verses, partial: 'related_verse', as: :related_verse, locals: {
+            current_verse_id: verse.id,
+            chapters: chapters
+          }
         end
       end
     end

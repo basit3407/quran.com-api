@@ -1,0 +1,26 @@
+# frozen_string_literal: true
+
+json.object! do
+  json.related_verses do
+    json.array! @presenter.related_verses do |related_verse|
+      other_verse = related_verse.other_verse_for(@presenter.find_verse.id)
+      chapter = @presenter.chapters[other_verse.chapter_id]
+
+      json.object! do
+        json.id related_verse.id
+        json.verse_id other_verse.id
+        json.verse_key other_verse.verse_key
+        json.relation related_verse.relation_type.localized_name_for(@presenter.get_language)
+        json.chapter_name chapter&.display_name_for(@presenter.get_language)
+      end
+    end
+  end
+
+  json.pagination do
+    json.object! do
+      json.merge! @presenter.pagination
+    end
+  end
+end
+
+

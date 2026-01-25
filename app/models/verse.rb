@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 # == Schema Information
-# Schema version: 20230313013539
+# Schema version: 20251224164230
 #
 # Table name: verses
 #
@@ -93,6 +93,12 @@ class Verse < ApplicationRecord
   has_many :translations
   has_many :roots, through: :words
   has_many :audio_files
+
+  # Related verses associations (bidirectional)
+  # Both associations delete their related_verses records when the verse is destroyed.
+  # Using delete_all for efficiency since RelatedVerse has no destroy callbacks.
+  has_many :related_verse_records, class_name: 'RelatedVerse', foreign_key: :verse_id, dependent: :delete_all
+  has_many :inverse_related_verse_records, class_name: 'RelatedVerse', foreign_key: :related_verse_id, dependent: :delete_all
 
   # for eager loading one audio
   has_one :audio_file
