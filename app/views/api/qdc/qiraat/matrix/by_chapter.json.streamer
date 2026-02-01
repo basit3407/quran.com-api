@@ -61,11 +61,12 @@ json.object! do
               json.text_uthmani reading.text_uthmani
               json.text_imlaei reading.text_imlaei
 
-              # Translation with English fallback
+              # Translation with English fallback (but not for Arabic)
               translation_content = reading.localized_contents.find_by(language: @language, content_type: 'translation')
               unless translation_content
                 english = Language.find_by(iso_code: 'en')
-                translation_content = reading.localized_contents.find_by(language: english, content_type: 'translation') if english && @language.iso_code != 'en'
+                should_allow_fallback = @language.iso_code != 'en' && @language.iso_code != 'ar'
+                translation_content = reading.localized_contents.find_by(language: english, content_type: 'translation') if english && should_allow_fallback
               end
               json.translation translation_content&.text if translation_content
 

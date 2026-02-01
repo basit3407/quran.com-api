@@ -124,4 +124,98 @@ RSpec.describe QiraatReadingExplanation, type: :model do
       expect(explanation.remove_reading(other_reading)).to be_nil
     end
   end
+
+  describe '#explanation_for_with_fallback' do
+    let(:explanation) { create(:qiraat_reading_explanation, source: 'al-Alusi') }
+    let(:english) { Language.find_by(iso_code: 'en') || create(:language, iso_code: 'en', name: 'English') }
+    let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar', name: 'Arabic') }
+    let(:french) { Language.find_by(iso_code: 'fr') || create(:language, iso_code: 'fr', name: 'French') }
+
+    before do
+      # Create English explanation
+      create(:localized_content,
+             resource: explanation,
+             language: english,
+             content_type: 'explanation',
+             text: 'English explanation text')
+    end
+
+    context 'when requested language content exists' do
+      before do
+        create(:localized_content,
+               resource: explanation,
+               language: arabic,
+               content_type: 'explanation',
+               text: 'Arabic explanation text')
+      end
+
+      it 'returns the requested language explanation' do
+        result = explanation.explanation_for_with_fallback(arabic)
+
+        expect(result[:id]).to eq(explanation.id)
+        expect(result[:text]).to eq('Arabic explanation text')
+        expect(result[:source]).to eq('al-Alusi')
+      end
+    end
+
+    context 'when requested language is Arabic and content is missing' do
+      it 'does NOT fall back to English' do
+        result = explanation.explanation_for_with_fallback(arabic)
+
+        expect(result).to be_nil
+      end
+    end
+
+    context 'when requested language is English and content is missing' do
+      it 'returns English explanation (no fallback needed)' do
+        result = explanation.explanation_for_with_fallback(english)
+
+        expect(result[:id]).to eq(explanation.id)
+        expect(result[:text]).to eq('English explanation text')
+        expect(result[:source]).to eq('al-Alusi')
+      end
+    end
+
+    context 'when requested language is non-Arabic and content is missing' do
+      it 'falls back to English' do
+        result = explanation.explanation_for_with_fallback(french)
+
+        expect(result[:id]).to eq(explanation.id)
+        expect(result[:text]).to eq('English explanation text')
+        expect(result[:source]).to eq('al-Alusi')
+      end
+    end
+  end
+
+  describe '#explanation_text_for_with_fallback' do
+    let(:explanation) { create(:qiraat_reading_explanation) }
+    let(:english) { Language.find_by(iso_code: 'en') || create(:language, iso_code: 'en', name: 'English') }
+    let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar', name: 'Arabic') }
+    let(:french) { Language.find_by(iso_code: 'fr') || create(:language, iso_code: 'fr', name: 'French') }
+
+    before do
+      # Create English explanation
+      create(:localized_content,
+             resource: explanation,
+             language: english,
+             content_type: 'explanation',
+             text: 'English only')
+    end
+
+    context 'when requested language is Arabic and content is missing' do
+      it 'does NOT fall back to English' do
+        result = explanation.explanation_text_for_with_fallback(arabic)
+
+        expect(result).to be_nil
+      end
+    end
+
+    context 'when requested language is non-Arabic and content is missing' do
+      it 'falls back to English' do
+        result = explanation.explanation_text_for_with_fallback(french)
+
+        expect(result).to eq('English only')
+      end
+    end
+  end
 end

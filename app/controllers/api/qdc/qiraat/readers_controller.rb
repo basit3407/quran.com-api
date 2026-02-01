@@ -8,15 +8,11 @@ module Api
         # Supports optional ?include parameter (comma-separated): transmitters, bio
         def index
           @includes = includes_param
-          readers_scope = QiraatReader.order(:position)
+          readers_scope = QiraatReader.includes(:localized_contents).order(:position)
 
           # Conditionally eager load based on includes parameter
           if @includes.include?('transmitters')
             readers_scope = readers_scope.includes(:qiraat_transmitters)
-          end
-
-          if @includes.include?('bio')
-            readers_scope = readers_scope.includes(:localized_contents)
           end
 
           @readers = readers_scope.to_a

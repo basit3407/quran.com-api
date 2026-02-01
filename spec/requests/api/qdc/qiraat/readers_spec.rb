@@ -44,6 +44,14 @@ RSpec.describe 'Api::Qdc::Qiraat::Readers', type: :request do
       content_type: 'bio',
       text: 'Nāfiʿ was a prominent scholar of Quranic recitation in Medina.'
     )
+
+    # Add English localized name for reader1 (simulating seeder behavior)
+    create(:localized_content,
+      resource: @reader1,
+      language: english,
+      content_type: 'name',
+      text: 'Nāfiʿ'
+    )
   end
 
   describe 'GET /api/qdc/qiraat/readers' do
@@ -184,18 +192,18 @@ RSpec.describe 'Api::Qdc::Qiraat::Readers', type: :request do
         json = JSON.parse(response.body)
         reader = json['readers'].find { |r| r['id'] == @reader1.id }
 
-        # Falls back to default name (no French or English localized name)
-        expect(reader['translated_name']).to eq('Nāfiʿ al-Madanī')
+        # Falls back to English localized name (seeded as abbreviation)
+        expect(reader['translated_name']).to eq('Nāfiʿ')
       end
 
-      it 'returns default name for reader without localized content' do
+      it 'returns nil for reader without localized content when language=ar' do
         get '/api/qdc/qiraat/readers', params: { language: 'ar' }
 
         json = JSON.parse(response.body)
         reader = json['readers'].find { |r| r['id'] == @reader2.id }
 
-        # Reader2 has no Arabic name, falls back to default
-        expect(reader['translated_name']).to eq('Ibn Kathīr')
+        # Reader2 has no Arabic name, no fallback for Arabic
+        expect(reader['translated_name']).to be_nil
       end
     end
 

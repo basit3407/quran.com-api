@@ -171,4 +171,114 @@ RSpec.describe QiraatJuncture, type: :model do
       expect(juncture.primary_verse).to eq(verse1)
     end
   end
+
+  describe '#explanation_for' do
+    let(:english) { Language.find_by(iso_code: 'en') || create(:language, iso_code: 'en') }
+    let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar') }
+    let(:french) { Language.find_by(iso_code: 'fr') || create(:language, iso_code: 'fr') }
+    let(:juncture) { described_class.create!(position: 1) }
+
+    it 'returns explanation in requested language when available' do
+      create(:localized_content,
+        resource: juncture,
+        language: french,
+        content_type: 'explanation',
+        text: 'Explication française')
+
+      result = juncture.explanation_for(french)
+
+      expect(result).to be_present
+      expect(result.text).to eq('Explication française')
+    end
+
+    it 'returns nil when explanation in requested language is not found' do
+      result = juncture.explanation_for(french)
+      expect(result).to be_nil
+    end
+
+    it 'does not fall back to English for Arabic when content is missing' do
+      create(:localized_content,
+        resource: juncture,
+        language: english,
+        content_type: 'explanation',
+        text: 'English explanation')
+
+      result = juncture.explanation_for(arabic)
+
+      expect(result).to be_nil
+    end
+
+    it 'does not fall back to English for English (trivial case)' do
+      result = juncture.explanation_for(english)
+      expect(result).to be_nil
+    end
+
+    it 'falls back to English for other languages when content is missing' do
+      create(:localized_content,
+        resource: juncture,
+        language: english,
+        content_type: 'explanation',
+        text: 'English explanation')
+
+      result = juncture.explanation_for(french)
+
+      expect(result).to be_present
+      expect(result.text).to eq('English explanation')
+    end
+  end
+
+  describe '#combined_translation_for' do
+    let(:english) { Language.find_by(iso_code: 'en') || create(:language, iso_code: 'en') }
+    let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar') }
+    let(:french) { Language.find_by(iso_code: 'fr') || create(:language, iso_code: 'fr') }
+    let(:juncture) { described_class.create!(position: 1) }
+
+    it 'returns combined_translation in requested language when available' do
+      create(:localized_content,
+        resource: juncture,
+        language: french,
+        content_type: 'combined_translation',
+        text: 'Traduction combinée française')
+
+      result = juncture.combined_translation_for(french)
+
+      expect(result).to be_present
+      expect(result.text).to eq('Traduction combinée française')
+    end
+
+    it 'returns nil when combined_translation in requested language is not found' do
+      result = juncture.combined_translation_for(french)
+      expect(result).to be_nil
+    end
+
+    it 'does not fall back to English for Arabic when content is missing' do
+      create(:localized_content,
+        resource: juncture,
+        language: english,
+        content_type: 'combined_translation',
+        text: 'English combined translation')
+
+      result = juncture.combined_translation_for(arabic)
+
+      expect(result).to be_nil
+    end
+
+    it 'does not fall back to English for English (trivial case)' do
+      result = juncture.combined_translation_for(english)
+      expect(result).to be_nil
+    end
+
+    it 'falls back to English for other languages when content is missing' do
+      create(:localized_content,
+        resource: juncture,
+        language: english,
+        content_type: 'combined_translation',
+        text: 'English combined translation')
+
+      result = juncture.combined_translation_for(french)
+
+      expect(result).to be_present
+      expect(result.text).to eq('English combined translation')
+    end
+  end
 end

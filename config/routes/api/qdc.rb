@@ -190,7 +190,7 @@ namespace :qdc do
     # Matrix View - Optimized endpoint for table rendering
     get 'matrix/by_verse/:verse_key', to: 'matrix#by_verse'
     get 'matrix/by_chapter/:chapter_number', to: 'matrix#by_chapter'
-    get 'matrix/by_range', to: 'matrix#by_range'
+    get 'matrix/count_within_range', to: 'matrix#count_within_range'
   end
 
   get 'ping', to: 'ping#ping'

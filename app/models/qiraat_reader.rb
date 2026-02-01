@@ -73,7 +73,24 @@ class QiraatReader < ApplicationRecord
   end
 
   def translated_name_for(language)
-    localized_text_for('name', language) || name
+    localized_text_for('name', language)
+  end
+
+  # Override localized_content_for to prevent Arabic fallback to English
+  # Arabic is a primary language for Quran data and should not fall back
+  def localized_content_for(content_type, language)
+    return nil unless language
+
+    lc = localized_contents.find { |c| c.language_id == language.id && c.content_type == content_type }
+    return lc if lc&.text.present?
+
+    # No fallback for Arabic or English
+    return nil if language.iso_code.in?(['en', 'ar'])
+
+    english = Language.find_by(iso_code: 'en')
+    return nil unless english
+
+    localized_contents.find { |c| c.language_id == english.id && c.content_type == content_type }
   end
 
   def full_name

@@ -55,6 +55,9 @@ json.object! do
       # Pre-cache juncture's localized contents indexed by content_type and language_id
       juncture_lc_cache = juncture.localized_contents.group_by { |lc| [lc.content_type, lc.language_id] }
 
+      # Determine if we should allow English fallback (not for Arabic or English)
+      should_allow_fallback = !is_english && @language.iso_code != 'ar'
+
       # Pre-cache segments sorted by position (use already-loaded association)
       cached_segments = juncture.qiraat_juncture_segments.sort_by { |s| s.position || Float::INFINITY }
 
@@ -208,9 +211,9 @@ json.object! do
               sorted_translations = reading.qiraat_reading_translations.sort_by { |t| t.position || Float::INFINITY }
               translations = sorted_translations.filter_map do |trans|
                 trans_lc_by_lang = shared_translation_lc_cache[trans.id] || {}
-                # Try requested language first, then English fallback
+                # Try requested language first, then English fallback (but not for Arabic)
                 lc = trans_lc_by_lang[@language.id]&.find { |c| c.content_type == 'translation' }
-                lc ||= trans_lc_by_lang[english&.id]&.find { |c| c.content_type == 'translation' } unless is_english
+                lc ||= trans_lc_by_lang[english&.id]&.find { |c| c.content_type == 'translation' } if should_allow_fallback && english
                 next nil unless lc&.text.present?
                 { id: trans.id, text: lc.text, source: trans.source || lc.source }
               end
@@ -227,15 +230,15 @@ json.object! do
                 end
                 json.translation translations.first[:text]
               else
-                # Fallback to direct localized_contents (legacy support) with English fallback
+                # Fallback to direct localized_contents (legacy support) with English fallback (but not for Arabic)
                 translation_content = reading_lc_cache[['translation', @language.id]]&.first
-                translation_content ||= reading_lc_cache[['translation', english&.id]]&.first unless is_english
+                translation_content ||= reading_lc_cache[['translation', english&.id]]&.first if should_allow_fallback && english
                 json.translation translation_content&.text if translation_content
               end
 
-              # Transliteration with English fallback (use cached data)
+              # Transliteration with English fallback (but not for Arabic)
               transliteration_content = reading_lc_cache[['transliteration', @language.id]]&.first
-              transliteration_content ||= reading_lc_cache[['transliteration', english&.id]]&.first unless is_english
+              transliteration_content ||= reading_lc_cache[['transliteration', english&.id]]&.first if should_allow_fallback && english
               json.transliteration transliteration_content&.text if transliteration_content
 
               # Shared explanations (from already-loaded qiraat_reading_explanations)
@@ -260,15 +263,15 @@ json.object! do
                   if reading_lc&.text.present?
                     explanation_text = reading_lc.text
                     explanation_id = shared_exp.id
-                  elsif !is_english && english
-                    # Third try: shared explanation in English
+                  elsif should_allow_fallback && english
+                    # Third try: shared explanation in English (but not for Arabic)
                     shared_lc_en = expl_lc_by_lang[english.id]&.find { |c| c.content_type == 'explanation' }
                     if shared_lc_en&.text.present?
                       explanation_text = shared_lc_en.text
                       explanation_id = shared_exp.id
                       explanation_source = shared_exp.source
                     else
-                      # Fourth try: reading's direct content in English
+                      # Fourth try: reading's direct content in English (but not for Arabic)
                       reading_lc_en = reading_lc_cache[['explanation', english.id]]&.first
                       if reading_lc_en&.text.present?
                         explanation_text = reading_lc_en.text
@@ -299,7 +302,7 @@ json.object! do
               else
                 # No shared explanations - check reading's direct localized_contents only
                 explanation_content = reading_lc_cache[['explanation', @language.id]]&.first
-                explanation_content ||= reading_lc_cache[['explanation', english&.id]]&.first unless is_english
+                explanation_content ||= reading_lc_cache[['explanation', english&.id]]&.first if should_allow_fallback && english
                 if explanation_content
                   json.explanation do
                     json.object! do
@@ -345,9 +348,9 @@ json.object! do
           end
         end
 
-        # Commentary with English fallback (use cached data)
+        # Commentary with English fallback (but not for Arabic)
         commentary_content = juncture_lc_cache[['combined_translation', @language.id]]&.first
-        commentary_content ||= juncture_lc_cache[['combined_translation', english&.id]]&.first unless is_english
+        commentary_content ||= juncture_lc_cache[['combined_translation', english&.id]]&.first if should_allow_fallback && english
         json.commentary commentary_content&.text if commentary_content
         json.combined_translation commentary_content&.text if commentary_content
       end

@@ -206,11 +206,33 @@ class QiraatJuncture < ApplicationRecord
   # ============================================================
 
   def explanation_for(language)
-    localized_contents.find_by(language: language, content_type: 'explanation')
+    return nil unless language
+
+    lc = localized_contents.find_by(language: language, content_type: 'explanation')
+    return lc if lc&.text.present?
+
+    # No fallback for Arabic or English
+    return nil if language.iso_code.in?(['en', 'ar'])
+
+    english = Language.find_by(iso_code: 'en')
+    return nil unless english
+
+    localized_contents.find_by(language: english, content_type: 'explanation')
   end
 
   def combined_translation_for(language)
-    localized_contents.find_by(language: language, content_type: 'combined_translation')
+    return nil unless language
+
+    lc = localized_contents.find_by(language: language, content_type: 'combined_translation')
+    return lc if lc&.text.present?
+
+    # No fallback for Arabic or English
+    return nil if language.iso_code.in?(['en', 'ar'])
+
+    english = Language.find_by(iso_code: 'en')
+    return nil unless english
+
+    localized_contents.find_by(language: english, content_type: 'combined_translation')
   end
 
   # ============================================================

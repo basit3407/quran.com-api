@@ -7,7 +7,7 @@ module Api
         # GET /api/qdc/qiraat/transmitters
         # Supports optional ?reader_id parameter to filter by reader
         def index
-          @transmitters = QiraatTransmitter.includes(:qiraat_reader).order(:position)
+          @transmitters = QiraatTransmitter.includes(:qiraat_reader, :localized_contents).order(:position)
 
           # Filter by reader_id if provided
           if params[:reader_id].present?

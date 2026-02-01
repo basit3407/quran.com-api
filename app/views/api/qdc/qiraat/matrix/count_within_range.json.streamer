@@ -1,0 +1,5 @@
+json.object! do
+  @verse_counts.each do |verse_key, count|
+    json.set! verse_key, count
+  end
+end

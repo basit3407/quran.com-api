@@ -56,6 +56,14 @@ RSpec.describe 'Api::Qdc::Qiraat::Transmitters', type: :request do
       content_type: 'bio',
       text: 'Warsh was a prominent transmitter of the Nāfiʿ reading.'
     )
+
+    # Add English localized name for transmitter1 (simulating seeder behavior)
+    create(:localized_content,
+      resource: @transmitter1,
+      language: english,
+      content_type: 'name',
+      text: 'Warsh'
+    )
   end
 
   describe 'GET /api/qdc/qiraat/transmitters' do
@@ -156,6 +164,87 @@ RSpec.describe 'Api::Qdc::Qiraat::Transmitters', type: :request do
 
       expect(json['error']['code']).to eq('NOT_FOUND')
       expect(json['error']['message']).to include('not found')
+    end
+  end
+
+  describe 'language support' do
+    let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar', name: 'Arabic', direction: 'rtl') }
+
+    before do
+      # Add Arabic localized name for transmitter1
+      create(:localized_content,
+        resource: @transmitter1,
+        language: arabic,
+        content_type: 'name',
+        text: 'ورش'
+      )
+
+      # Add Arabic bio for transmitter1
+      create(:localized_content,
+        resource: @transmitter1,
+        language: arabic,
+        content_type: 'bio',
+        text: 'ورش كان راوياً بارزاً لقراءة نافع.'
+      )
+    end
+
+    describe 'translated_name' do
+      it 'returns Arabic name when language=ar' do
+        get '/api/qdc/qiraat/transmitters', params: { language: 'ar' }
+
+        json = JSON.parse(response.body)
+        transmitter = json['transmitters'].find { |t| t['id'] == @transmitter1.id }
+
+        expect(transmitter['translated_name']).to eq('ورش')
+      end
+
+      it 'returns default name when language has no translation' do
+        get '/api/qdc/qiraat/transmitters', params: { language: 'fr' }
+
+        json = JSON.parse(response.body)
+        transmitter = json['transmitters'].find { |t| t['id'] == @transmitter1.id }
+
+        # Falls back to English localized name (seeded as abbreviation)
+        expect(transmitter['translated_name']).to eq('Warsh')
+      end
+
+      it 'returns nil for transmitter without localized content when language=ar' do
+        get '/api/qdc/qiraat/transmitters', params: { language: 'ar' }
+
+        json = JSON.parse(response.body)
+        transmitter = json['transmitters'].find { |t| t['id'] == @transmitter2.id }
+
+        # Transmitter2 has no Arabic name, no fallback for Arabic
+        expect(transmitter['translated_name']).to be_nil
+      end
+    end
+
+    describe 'bio with fallback' do
+      it 'returns Arabic bio when language=ar' do
+        get "/api/qdc/qiraat/transmitters/#{@transmitter1.id}", params: { language: 'ar' }
+
+        json = JSON.parse(response.body)
+
+        expect(json['transmitter']['bio']['text']).to eq('ورش كان راوياً بارزاً لقراءة نافع.')
+      end
+
+      it 'falls back to English bio when requested language not available' do
+        get "/api/qdc/qiraat/transmitters/#{@transmitter1.id}", params: { language: 'fr' }
+
+        json = JSON.parse(response.body)
+
+        # Falls back to English bio
+        expect(json['transmitter']['bio']['text']).to include('Warsh was a prominent transmitter')
+      end
+
+      it 'returns nil bio for Arabic when no Arabic content exists' do
+        get "/api/qdc/qiraat/transmitters/#{@transmitter2.id}", params: { language: 'ar' }
+
+        json = JSON.parse(response.body)
+
+        # Transmitter2 has no Arabic bio, should not fall back to English
+        expect(json['transmitter']['bio']).to be_nil
+      end
     end
   end
 end

@@ -325,6 +325,78 @@ RSpec.describe 'Api::Qdc::Qiraat::Matrix', type: :request do
       reading = json['junctures'].first['readings'].first
       expect(reading['text_uthmani']).to eq('MODIFIED')
     end
+
+    context 'language fallback behavior' do
+      let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar') }
+
+      before do
+        # Create Arabic translations for reading1
+        create(:localized_content,
+          resource: @reading1,
+          language: arabic,
+          content_type: 'translation',
+          text: 'أخيك (منصوب)'
+        )
+
+        # Create a shared explanation only in English
+        @shared_explanation = create(:qiraat_reading_explanation, source: 'al-Alusi')
+        create(:localized_content,
+          resource: @shared_explanation,
+          language: english,
+          content_type: 'explanation',
+          text: 'English only explanation')
+
+        create(:qiraat_reading_explanation_membership,
+          qiraat_reading: @reading1,
+          qiraat_reading_explanation: @shared_explanation)
+
+        # Create combined_translation only in English for the juncture
+        create(:localized_content,
+          resource: @juncture,
+          language: english,
+          content_type: 'combined_translation',
+          text: 'English only combined translation')
+      end
+
+      it 'does not fall back to English for Arabic when content is missing' do
+        get '/api/qdc/qiraat/matrix/by_verse/12:12', params: { language: 'ar' }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        reading = json['junctures'].first['readings'].first
+
+        # Arabic translation should be present (we created it)
+        expect(reading['translation']).to eq('أخيك (منصوب)')
+
+        # Explanation should NOT fall back to English (should be null/missing)
+        expect(reading['explanation']).to be_nil
+
+        # Combined translation/commentary should NOT fall back to English (should be null/missing)
+        juncture = json['junctures'].first
+        expect(juncture['combined_translation']).to be_nil
+        expect(juncture['commentary']).to be_nil
+      end
+
+      it 'falls back to English for non-Arabic languages when content is missing' do
+        french = Language.find_by(iso_code: 'fr') || create(:language, iso_code: 'fr')
+
+        get '/api/qdc/qiraat/matrix/by_verse/12:12', params: { language: french.iso_code }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        reading = json['junctures'].first['readings'].first
+        juncture = json['junctures'].first
+
+        # French should fall back to English when French content is missing
+        expect(reading['translation']).to eq('your brother (accusative)')
+        expect(reading['explanation']).to be_present
+        expect(reading['explanation']['text']).to eq('English only explanation')
+        expect(juncture['combined_translation']).to eq('English only combined translation')
+        expect(juncture['commentary']).to eq('English only combined translation')
+      end
+    end
   end
 
   describe 'GET /api/qdc/qiraat/matrix/by_chapter/:chapter_number' do
@@ -350,6 +422,290 @@ RSpec.describe 'Api::Qdc::Qiraat::Matrix', type: :request do
       expect(response).to have_http_status(:not_found)
       json = JSON.parse(response.body)
       expect(json['error']['code']).to eq('NOT_FOUND')
+    end
+
+    context 'language fallback behavior' do
+      let(:arabic) { Language.find_by(iso_code: 'ar') || create(:language, iso_code: 'ar') }
+
+      before do
+        # Create Arabic translations for reading1
+        create(:localized_content,
+          resource: @reading1,
+          language: arabic,
+          content_type: 'translation',
+          text: 'أخيك (منصوب)'
+        )
+      end
+
+      it 'does not fall back to English for Arabic when content is missing' do
+        get '/api/qdc/qiraat/matrix/by_chapter/12', params: { language: 'ar', page: 1, per_page: 10 }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        # Find the reading with Arabic translation in the response
+        juncture = json['junctures'].first
+        reading = juncture['readings'].find { |r| r['translation'] == 'أخيك (منصوب)' }
+
+        expect(reading).to be_present
+        expect(reading['translation']).to eq('أخيك (منصوب)')
+      end
+
+      it 'falls back to English for non-Arabic languages when content is missing' do
+        french = Language.find_by(iso_code: 'fr') || create(:language, iso_code: 'fr')
+
+        get '/api/qdc/qiraat/matrix/by_chapter/12', params: { language: french.iso_code, page: 1, per_page: 10 }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        # French should fall back to English when French content is missing
+        juncture = json['junctures'].first
+        reading = juncture['readings'].first
+
+        expect(reading['translation']).to eq('your brother (accusative)')
+      end
+    end
+  end
+
+  describe 'GET /api/qdc/qiraat/matrix/count_within_range' do
+    before do
+      # Create additional verses and junctures for range testing
+      @verse2 = Verse.find_or_create_by!(chapter_id: 12, verse_number: 13) do |v|
+        v.verse_key = '12:13'
+        v.text_uthmani = 'قَالُوا يَا أَبَانَا مَا لَكَ لَا تَأْمَنَّا عَلَى يُوسُفَ'
+      end
+
+      # Create words for verse2
+      @word2 = Word.find_or_create_by!(verse_id: @verse2.id, position: 1) do |w|
+        w.text_uthmani = 'قَالُوا'
+        w.char_type_name = 'word'
+      end
+
+      # Create a juncture for verse2
+      @juncture2 = create(:qiraat_juncture, position: 2)
+      @segment2 = create(:qiraat_juncture_segment,
+        qiraat_juncture: @juncture2,
+        verse: @verse2,
+        start_word: @word2,
+        end_word: @word2,
+        position: 1
+      )
+      create(:qiraat_reading, qiraat_juncture: @juncture2, text_uthmani: 'قَالُوا')
+    end
+
+    context 'with valid parameters' do
+      it 'returns juncture counts for verses within range' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:12', to: '12:13' }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        # Should return counts for both verses
+        expect(json).to be_a(Hash)
+        expect(json['12:12']).to eq(1)  # One approved juncture
+        expect(json['12:13']).to eq(1)  # One approved juncture
+      end
+
+      it 'returns empty hash for range with no junctures' do
+        # Create a verse without any junctures
+        Verse.find_or_create_by!(chapter_id: 1, verse_number: 2) do |v|
+          v.verse_key = '1:2'
+          v.text_uthmani = 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ'
+        end
+
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '1:2', to: '1:2' }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        # Should return empty hash since no junctures exist for this verse
+        expect(json).to eq({})
+      end
+
+      it 'returns correct count for single verse range' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:12', to: '12:12' }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        expect(json).to be_a(Hash)
+        expect(json['12:12']).to eq(1)
+      end
+
+      it 'handles ranges spanning multiple chapters' do
+        # Create verse in chapter 1
+        Verse.find_or_create_by!(chapter_id: 1, verse_number: 5) do |v|
+          v.verse_key = '1:5'
+          v.text_uthmani = 'إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ'
+        end
+
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '1:1', to: '12:12' }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        # Should only include verse 12:12 which has a juncture
+        expect(json).to be_a(Hash)
+        expect(json['12:12']).to eq(1)
+      end
+    end
+
+    context 'with missing parameters' do
+      it 'returns error when from parameter is missing' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { to: '12:13' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Missing required parameters')
+        expect(json['error']['details']['required']).to include('from')
+      end
+
+      it 'returns error when to parameter is missing' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:12' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Missing required parameters')
+        expect(json['error']['details']['required']).to include('to')
+      end
+
+      it 'returns error when both parameters are missing' do
+        get '/api/qdc/qiraat/matrix/count_within_range'
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Missing required parameters')
+        expect(json['error']['details']['required']).to match_array(['from', 'to'])
+      end
+    end
+
+    context 'with invalid verse key format' do
+      it 'returns error when from has invalid format' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: 'invalid', to: '12:13' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Invalid verse_key format')
+        expect(json['error']['details']['from']).to eq('invalid')
+        expect(json['error']['details']['to']).to eq('12:13')
+      end
+
+      it 'returns error when to has invalid format' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:12', to: 'not-valid' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Invalid verse_key format')
+        expect(json['error']['details']['from']).to eq('12:12')
+        expect(json['error']['details']['to']).to eq('not-valid')
+      end
+
+      it 'returns error when both have invalid format' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: 'abc', to: 'xyz' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Invalid verse_key format')
+      end
+
+      it 'returns error for format without colon separator' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '1212', to: '1213' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+      end
+
+      it 'accepts whitespace and strips it' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: ' 12:12 ', to: ' 12:13 ' }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        expect(json['12:12']).to eq(1)
+      end
+    end
+
+    context 'with invalid verse keys' do
+      it 'returns error when from references non-existent verse' do
+        # Use a verse key that doesn't exist (beyond Quran range)
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '999:999', to: '12:13' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Invalid verse keys')
+      end
+
+      it 'returns error when to references non-existent verse' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:12', to: '999:999' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Invalid verse keys')
+      end
+    end
+
+    context 'with invalid range' do
+      it 'returns error when from verse comes after to verse' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:13', to: '12:12' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Invalid range')
+        expect(json['error']['message']).to include('from verse must come before to verse')
+      end
+
+      it 'returns error when from is in later chapter than to' do
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:12', to: '1:1' }
+
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+
+        expect(json['error']['code']).to eq('INVALID_PARAMETER')
+        expect(json['error']['message']).to include('Invalid range')
+      end
+    end
+
+    context 'excluding unapproved junctures' do
+      it 'only counts approved junctures' do
+        # Create an unapproved juncture for verse 12:12
+        unapproved_juncture = create(:qiraat_juncture, position: 99, approved: false)
+        create(:qiraat_juncture_segment,
+          qiraat_juncture: unapproved_juncture,
+          verse: @verse,
+          start_word: @word1,
+          end_word: @word1,
+          position: 1
+        )
+
+        get '/api/qdc/qiraat/matrix/count_within_range', params: { from: '12:12', to: '12:12' }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+
+        # Should only count the approved juncture, not the unapproved one
+        expect(json['12:12']).to eq(1)
+      end
     end
   end
 end

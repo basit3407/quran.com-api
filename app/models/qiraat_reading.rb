@@ -65,7 +65,7 @@ class QiraatReading < ApplicationRecord
 
   # Instance methods
   # Get translation from shared translation entities first, then fallback to direct localized_contents
-  # Includes English fallback if content not available in requested language
+  # Includes English fallback if content not available in requested language (but NOT for Arabic)
   def translation_for(language)
     # First check shared translations (new pattern)
     shared_translation = qiraat_reading_translations.ordered.first&.translation_text_for_with_fallback(language)
@@ -75,8 +75,8 @@ class QiraatReading < ApplicationRecord
     content = localized_contents.find_by(language: language, content_type: 'translation')&.text
     return content if content.present?
 
-    # Fallback to English if requested language is not English
-    return nil if language.iso_code == 'en'
+    # Fallback to English if requested language is not English or Arabic
+    return nil if language.iso_code.in?(['en', 'ar'])
     english = Language.find_by(iso_code: 'en')
     return nil unless english
     localized_contents.find_by(language: english, content_type: 'translation')&.text
@@ -87,8 +87,8 @@ class QiraatReading < ApplicationRecord
     content = localized_contents.find_by(language: language, content_type: 'transliteration')&.text
     return content if content.present?
 
-    # Fallback to English
-    return nil if language.iso_code == 'en'
+    # Fallback to English (but NOT for Arabic)
+    return nil if language.iso_code.in?(['en', 'ar'])
     english = Language.find_by(iso_code: 'en')
     return nil unless english
     localized_contents.find_by(language: english, content_type: 'transliteration')&.text
@@ -96,11 +96,9 @@ class QiraatReading < ApplicationRecord
 
   # Get translations from shared translation entities
   # Returns an array of translation hashes (since multiple translations can be shared)
-  # Includes English fallback
-  # Get translations from shared translation entities
-  # Returns an array of translation hashes (since multiple translations can be shared)
   # Includes English fallback ONLY if no translations in the requested language are found.
   # This prevents showing both Arabic and English versions of the same reading if they are stored as separate entities.
+  # Does NOT fallback for Arabic requests.
   def translations_for(language)
     # 1. Try to find exact matches in the requested language
     exact_matches = qiraat_reading_translations.ordered.filter_map do |translation|
@@ -109,8 +107,8 @@ class QiraatReading < ApplicationRecord
 
     return exact_matches if exact_matches.present?
 
-    # 2. Fallback to English if requested language is not English
-    return [] if language.iso_code == 'en'
+    # 2. Fallback to English if requested language is not English or Arabic
+    return [] if language.iso_code.in?(['en', 'ar'])
 
     english = Language.find_by(iso_code: 'en')
     return [] unless english

@@ -21,8 +21,7 @@ json.object! do
         end
       end
 
-      bio_content = @transmitter.localized_contents
-                              .find_by(language: @language, content_type: 'bio')
+      bio_content = @transmitter.bio_for(@language)
 
       if bio_content
         json.bio do

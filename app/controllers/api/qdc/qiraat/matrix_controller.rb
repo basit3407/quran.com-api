@@ -38,8 +38,7 @@ module Api
           # Only include approved junctures in public API
           base_scope = QiraatJuncture
             .approved
-            .joins(:qiraat_juncture_segments)
-            .joins('INNER JOIN verses ON verses.id = qiraat_juncture_segments.verse_id')
+            .joins(qiraat_juncture_segments: :verse)
             .where(verses: { chapter_id: @chapter.id })
             .includes(matrix_includes)
             .distinct
@@ -57,6 +56,64 @@ module Api
             message: "Chapter #{params[:chapter_number]} not found"
           }
           render 'api/qdc/qiraat/error', status: :not_found
+        end
+
+        # GET /api/qdc/qiraat/matrix/count_within_range?from=1:1&to=2:10
+        def count_within_range
+          # Validate parameters
+          unless params[:from] && params[:to]
+            @error = {
+              code: 'INVALID_PARAMETER',
+              message: 'Missing required parameters: from and to',
+              details: {
+                required: ['from', 'to']
+              }
+            }
+            return render 'api/qdc/qiraat/error', status: :bad_request
+          end
+
+          # Parse and validate verse keys
+          from_verse_key = params[:from].to_s.strip
+          to_verse_key = params[:to].to_s.strip
+
+          unless from_verse_key =~ /^\d+:\d+$/ && to_verse_key =~ /^\d+:\d+$/
+            @error = {
+              code: 'INVALID_PARAMETER',
+              message: 'Invalid verse_key format. Expected format: chapter:verse (e.g., 1:1)',
+              details: {
+                from: from_verse_key,
+                to: to_verse_key,
+                expected: '1:1'
+              }
+            }
+            return render 'api/qdc/qiraat/error', status: :bad_request
+          end
+
+          # Convert verse keys to verse indices
+          from_verse_index = QuranUtils::Quran.get_ayah_id_from_key(from_verse_key)
+          to_verse_index = QuranUtils::Quran.get_ayah_id_from_key(to_verse_key)
+
+          unless from_verse_index && to_verse_index
+            @error = {
+              code: 'INVALID_PARAMETER',
+              message: 'Invalid verse keys. Verse keys must reference valid Quranic verses.',
+              details: {}
+            }
+            return render 'api/qdc/qiraat/error', status: :bad_request
+          end
+
+          if from_verse_index > to_verse_index
+            @error = {
+              code: 'INVALID_PARAMETER',
+              message: 'Invalid range: from verse must come before to verse',
+              details: {}
+            }
+            return render 'api/qdc/qiraat/error', status: :bad_request
+          end
+
+          # Get verse count map
+          @verse_counts = get_juncture_count_by_verse_range(from_verse_index, to_verse_index)
+          render formats: [:json]
         end
 
         private
@@ -125,6 +182,21 @@ module Api
             ],
             localized_contents: []
           }
+        end
+
+        # Get juncture count per verse within a given verse index range
+        # Returns a hash mapping verse keys to juncture counts
+        # Only includes verses that have at least one juncture
+        def get_juncture_count_by_verse_range(from_verse_index, to_verse_index)
+          result = QiraatJuncture
+            .approved
+            .joins(qiraat_juncture_segments: :verse)
+            .where(verses: { verse_index: from_verse_index..to_verse_index })
+            .group('verses.verse_key')
+            .pluck(Arel.sql('verses.verse_key, COUNT(DISTINCT qiraat_junctures.id)'))
+            .to_h
+
+          result
         end
       end
     end

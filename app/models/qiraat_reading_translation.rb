@@ -44,13 +44,14 @@ class QiraatReadingTranslation < ApplicationRecord
 
   # Get translation text for a specific language with English fallback
   # Returns hash with id, text, and source for frontend grouping
+  # Does NOT fallback for Arabic requests
   def translation_for_with_fallback(language)
     # Try requested language first
     result = translation_for(language)
     return result if result.present?
 
-    # Fallback to English if requested language is not English
-    return nil if language.iso_code == 'en'
+    # Fallback to English if requested language is not English or Arabic
+    return nil if language.iso_code.in?(['en', 'ar'])
 
     english = Language.find_by(iso_code: 'en')
     return nil unless english
@@ -64,13 +65,14 @@ class QiraatReadingTranslation < ApplicationRecord
   end
 
   # Convenience method to get just the text with English fallback
+  # Does NOT fallback for Arabic requests
   def translation_text_for_with_fallback(language)
     # Try requested language first
     text = translation_text_for(language)
     return text if text.present?
 
-    # Fallback to English
-    return nil if language.iso_code == 'en'
+    # Fallback to English (but NOT for Arabic)
+    return nil if language.iso_code.in?(['en', 'ar'])
 
     english = Language.find_by(iso_code: 'en')
     return nil unless english

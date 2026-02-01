@@ -13,7 +13,8 @@ module QiraatSeedHelpers
     white: '#FFFFFF',
     green: '#B7D7A8',
     pink: '#ea9999',
-    blue: '#A4C2F4'
+    blue: '#A4C2F4',
+    orange: '#F5E2CD'
   }.freeze
 
   # Helper method to create a juncture with segments
@@ -109,7 +110,9 @@ namespace :qiraat do
   desc 'Seed all Qiraat data including readers, transmitters, and junctures'
   task seed_all: :environment do
     Rake::Task['qiraat:seed_readers'].invoke
+    Rake::Task['qiraat:seed_reader_cities'].invoke
     Rake::Task['qiraat:seed_transmitters'].invoke
+    Rake::Task['qiraat:seed_english_names'].invoke
     Rake::Task['qiraat:seed_yunus_10_35'].invoke
     Rake::Task['qiraat:seed_anfal_8_65_66'].invoke
     Rake::Task['qiraat:seed_yusuf_12_12'].invoke
@@ -185,20 +188,22 @@ namespace :qiraat do
     puts "\n✅ Successfully reseeded Surah #{chapter.name_simple}!"
   end
 
-  desc 'Clear ALL Qiraat juncture data from the database (keeps readers and transmitters)'
+  desc 'Clear ALL Qiraat data from the database (including readers, transmitters, and junctures)'
   task clear_all: :environment do
-    puts "\n🗑️  Clearing ALL Qiraat juncture data..."
+    puts "\n🗑️  Clearing ALL Qiraat data..."
 
     # Get counts before clearing
     juncture_count = QiraatJuncture.count
     reading_count = QiraatReading.count
+    reader_count = QiraatReader.count
+    transmitter_count = QiraatTransmitter.count
 
-    if juncture_count.zero?
-      puts "   No juncture data found to clear."
+    if juncture_count.zero? && reader_count.zero?
+      puts "   No Qiraat data found to clear."
       next
     end
 
-    # Clear all data
+    # Clear all juncture-related data first
     QiraatReadingExplanationMembership.destroy_all
     QiraatReadingTranslationMembership.destroy_all if defined?(QiraatReadingTranslationMembership)
     QiraatReadingAttribution.destroy_all
@@ -212,8 +217,15 @@ namespace :qiraat do
     QiraatJunctureSegment.destroy_all
     QiraatJuncture.destroy_all
 
-    puts "✅ Cleared #{juncture_count} junctures with #{reading_count} readings."
-    puts "   (Readers and transmitters preserved)"
+    # Clear readers and transmitters, localized content will be destroyed automatically
+    QiraatTransmitter.destroy_all
+    QiraatReader.destroy_all
+
+    puts "✅ Cleared:"
+    puts "   - #{juncture_count} junctures with #{reading_count} readings"
+    puts "   - #{reader_count} readers"
+    puts "   - #{transmitter_count} transmitters"
+    puts "   (All Qiraat data removed)"
   end
 
   desc 'Seed the 10 canonical Qiraat readers'
@@ -221,16 +233,16 @@ namespace :qiraat do
     puts "Seeding Qiraat Readers..."
 
     readers_data = [
-      { name: 'Ibn ʿĀmir al-Shāmī', abbreviation: 'Ibn ʿĀmir', position: 1 },
-      { name: 'Ḥamzah al-Zayyāt', abbreviation: 'Ḥamzah', position: 2 },
-      { name: 'Khalaf al-Bazzār', abbreviation: 'Khalaf', position: 3 },
-      { name: 'al-Kisāʾī', abbreviation: 'al-Kisāʾī', position: 4 },
-      { name: 'ʿĀṣim al-Kūfī', abbreviation: 'ʿĀṣim', position: 5 },
-      { name: 'Abū Jaʿfar al-Madanī', abbreviation: 'Abū Jaʿfar', position: 6 },
-      { name: 'Nāfiʿ al-Madanī', abbreviation: 'Nāfiʿ', position: 7 },
-      { name: 'Ibn Kathīr al-Makkī', abbreviation: 'Ibn Kathīr', position: 8 },
-      { name: 'Abū ʿAmr al-Baṣrī', abbreviation: 'Abū ʿAmr', position: 9 },
-      { name: 'Yaʿqūb al-Ḥaḍramī', abbreviation: 'Yaʿqūb', position: 10 }
+      { name: 'Ibn ʿĀmir al-Shāmī', abbreviation: 'Ibn ʿĀmir', position: 2 },
+      { name: 'Ḥamzah al-Zayyāt', abbreviation: 'Ḥamzah', position: 4 },
+      { name: 'Khalaf al-Bazzār', abbreviation: 'Khalaf', position: 6 },
+      { name: 'al-Kisāʾī', abbreviation: 'al-Kisāʾī', position: 8 },
+      { name: 'ʿĀṣim al-Kūfī', abbreviation: 'ʿĀṣim', position: 10 },
+      { name: 'Abū Jaʿfar al-Madanī', abbreviation: 'Abū Jaʿfar', position: 1 },
+      { name: 'Nāfiʿ al-Madanī', abbreviation: 'Nāfiʿ', position: 3 },
+      { name: 'Ibn Kathīr al-Makkī', abbreviation: 'Ibn Kathīr', position: 5 },
+      { name: 'Abū ʿAmr al-Baṣrī', abbreviation: 'Abū ʿAmr', position: 7 },
+      { name: 'Yaʿqūb al-Ḥaḍramī', abbreviation: 'Yaʿqūb', position: 9 }
     ]
 
     readers_data.each do |data|
@@ -255,7 +267,7 @@ namespace :qiraat do
     reader_cities = {
       'Ibn ʿĀmir'  => { en: 'Damascus', ar: 'دمشق' },
       'Ḥamzah'     => { en: 'Kufah', ar: 'الكوفة' },
-      'Khalaf'     => { en: 'Baghdad', ar: 'بغداد' },
+      'Khalaf'     => { en: 'Kufah', ar: 'الكوفة' },
       'al-Kisāʾī'  => { en: 'Kufah', ar: 'الكوفة' },
       'ʿĀṣim'      => { en: 'Kufah', ar: 'الكوفة' },
       'Abū Jaʿfar' => { en: 'Madinah', ar: 'المدينة' },
@@ -292,26 +304,59 @@ namespace :qiraat do
     puts "✅ Seeded reader cities"
   end
 
+  desc 'Seed English localized names for readers and transmitters'
+  task seed_english_names: :environment do
+    puts "\nSeeding English localized names..."
+
+    english = Language.find_by!(iso_code: 'en')
+
+    # Reader English names (using abbreviation as the English name)
+    puts "\nSeeding reader English names (abbreviations)..."
+    QiraatReader.find_each do |reader|
+      LocalizedContent.find_or_create_by!(
+        resource: reader,
+        language: english,
+        content_type: 'name'
+      ) { |lc| lc.text = reader.abbreviation }
+      puts "  ✓ #{reader.abbreviation}"
+    end
+
+    puts "✅ Seeded #{QiraatReader.count} reader English names"
+
+    # Transmitter English names (using name field as the English name)
+    puts "\nSeeding transmitter English names..."
+    QiraatTransmitter.find_each do |transmitter|
+      LocalizedContent.find_or_create_by!(
+        resource: transmitter,
+        language: english,
+        content_type: 'name'
+      ) { |lc| lc.text = transmitter.name }
+      puts "  ✓ #{transmitter.abbreviation}"
+    end
+
+    puts "✅ Seeded #{QiraatTransmitter.count} transmitter English names"
+  end
+
   desc 'Seed transmitters for each reader'
   task seed_transmitters: :environment do
     puts "\nSeeding Qiraat Transmitters..."
 
     transmitters_data = {
       'ʿĀṣim' => [
-        { name: 'Ḥafṣ', abbreviation: 'Ḥafṣ', position: 2 },
-        { name: "Shuʿbah", abbreviation: "Shuʿbah", position: 1 }
+        { name: "Shu’bah", abbreviation: "Shu’bah", position: 1 },
+        { name: 'Ḥafṣ', abbreviation: 'Ḥafṣ', position: 2 }
       ],
       'Nāfiʿ' => [
-        { name: 'Qālūn', abbreviation: 'Qālūn', position: 1 },
-        { name: 'Warsh', abbreviation: 'Warsh', position: 2 }
+        { name: 'Warsh', abbreviation: 'Warsh', position: 1 },
+        { name: 'Qalun', abbreviation: 'Qalun', position: 2 }
       ],
       'Ibn Kathīr' => [
-        { name: 'al-Bazzī', abbreviation: 'al-Bazzī', position: 1 },
+        { name: 'Al-Bazzi', abbreviation: 'Al-Bazzi', position: 1 },
         { name: 'Qunbul', abbreviation: 'Qunbul', position: 2 }
       ],
       'Abū ʿAmr' => [
-        { name: 'al-Dūrī', abbreviation: 'al-Dūrī', position: 1 },
-        { name: 'al-Sūsī', abbreviation: 'al-Sūsī', position: 2 }
+        { name: 'Ad-Duri', abbreviation: 'Ad-Duri', position: 1 },
+        { name: 'As-Susi', abbreviation: 'As-Susi', position: 2 }
       ],
       'Ibn ʿĀmir' => [
         { name: 'Hishām', abbreviation: 'Hishām', position: 1 },
@@ -319,23 +364,23 @@ namespace :qiraat do
       ],
       'Ḥamzah' => [
         { name: 'Khalaf', abbreviation: 'Khalaf', position: 1 },
-        { name: 'Khallād', abbreviation: 'Khallād', position: 2 }
+        { name: 'Khallad', abbreviation: 'Khallad', position: 2 }
       ],
       'al-Kisāʾī' => [
-        { name: 'al-Dūrī al-Kisāʾī', abbreviation: 'Dūrī (K)', position: 1 },
-        { name: 'Abū al-Ḥārith', abbreviation: 'A. Ḥārith', position: 2 }
+        { name: 'Ad-Duri', abbreviation: 'Dūrī (K)', position: 2 },
+        { name: 'Abu al-Harith', abbreviation: 'A. Ḥārith', position: 1 },
       ],
       'Abū Jaʿfar' => [
-        { name: 'Ibn Wardān', abbreviation: 'Ibn Wardān', position: 1 },
-        { name: 'Ibn Jammāz', abbreviation: 'Ibn Jammāz', position: 2 }
+        { name: 'Ibn Wardan', abbreviation: 'Ibn Wardan', position: 1 },
+        { name: 'Ibn Jammaz', abbreviation: 'Ibn Jammaz', position: 2 }
       ],
       'Yaʿqūb' => [
-        { name: 'Ruways', abbreviation: 'Ruways', position: 1 },
+        { name: 'Ruwais', abbreviation: 'Ruwais', position: 1 },
         { name: 'Rawḥ', abbreviation: 'Rawḥ', position: 2 }
       ],
       'Khalaf' => [
-        { name: 'Isḥāq', abbreviation: 'Isḥāq', position: 1 },
-        { name: 'Idrīs', abbreviation: 'Idrīs', position: 2 }
+        { name: 'Isḥaq', abbreviation: 'Isḥaq', position: 1 },
+        { name: 'Idris', abbreviation: 'Idris', position: 2 }
       ]
     }
 
@@ -390,26 +435,26 @@ namespace :qiraat do
 
       # Transmitter Arabic names (sample)
       transmitter_arabic_names = {
-        'Ḥafṣ' => 'حفص',
-        "Shuʿbah" => 'شعبة',
-        'Qālūn' => 'قالون',
+        'Ḥafṣ' => 'حفص',
+        "Shu’bah" => 'شعبة',
+        'Qalun' => 'قالون',
         'Warsh' => 'ورش',
-        'al-Bazzī' => 'البزّي',
+        'Al-Bazzi' => 'البزّي',
         'Qunbul' => 'قنبل',
-        'al-Dūrī' => 'الدوري',
-        'al-Sūsī' => 'السوسي',
+        'Ad-Duri' => 'الدوري',
+        'As-Susi' => 'السوسي',
         'Hishām' => 'هشام',
         'I. Dhakwān' => 'ابن ذكوان',
         'Khalaf' => 'خلف',
-        'Khallād' => 'خلاد',
+        'Khallad' => 'خلاد',
         'Dūrī (K)' => 'الدوري (الكسائي)',
         'A. Ḥārith' => 'أبو الحارث',
-        'Ibn Wardān' => 'ابن وردان',
-        'Ibn Jammāz' => 'ابن جماز',
-        'Ruways' => 'رويس',
+        'Ibn Wardan' => 'ابن وردان',
+        'Ibn Jammaz' => 'ابن جماز',
+        'Ruwais' => 'رويس',
         'Rawḥ' => 'روح',
-        'Isḥāq' => 'إسحاق',
-        'Idrīs' => 'إدريس'
+        'Isḥaq' => 'إسحاق',
+        'Idris' => 'إدريس'
       }
 
       transmitter_arabic_names.each do |abbr, arabic_name|
@@ -453,7 +498,7 @@ namespace :qiraat do
 
         'Abū ʿAmr' => "Abu 'Amr al-Basri (70-154 AH / 689-770 CE) was born in Mecca and raised in Basra, dying in Kufa. He was one of the seven prominent Qira'at reciters and a renowned linguist who contributed significantly to Arabic grammar, founding the Basran philology school. He had the most teachers among the seven Qira'at readers, studying in Basra, Kufa, Mecca, and Medina. His method was known for a strictly systematic approach focusing on accurate articulation and vowel precision. His principal transmitters were Ad-Duri and As-Susi.",
 
-        'Yaʿqūb' => "Ya'qub al-Hadrami (117-205 AH / 735-820 CE) was born in Basra and was the ninth of the ten famous Qira'at reciters. He became the leader of Quran reciters in Basra after Abu 'Amr al-Basri. His Qira'ah traced back to the companions through Abu Musa al-Ash'ari. His recitation was marked by distinctive pronunciation and a measured, lyrical delivery, preserving regional inflections from the Hadramawt region where his method remains popular in Yemen and related communities. His two primary transmitters were Ruways and Rawh."
+        'Yaʿqūb' => "Ya'qub al-Hadrami (117-205 AH / 735-820 CE) was born in Basra and was the ninth of the ten famous Qira'at reciters. He became the leader of Quran reciters in Basra after Abu 'Amr al-Basri. His Qira'ah traced back to the companions through Abu Musa al-Ash'ari. His recitation was marked by distinctive pronunciation and a measured, lyrical delivery, preserving regional inflections from the Hadramawt region where his method remains popular in Yemen and related communities. His two primary transmitters were Ruwais and Rawh."
       }
 
       reader_bios_en.each do |abbr, bio|
@@ -519,21 +564,21 @@ namespace :qiraat do
       puts "\nSeeding transmitter biographies (English)..."
 
       transmitter_bios_en = {
-        'Ḥafṣ' => "Hafs ibn Sulayman al-Asadi al-Kufi (90-180 AH / 706-796 CE) was born in Baghdad and died in Kufa. He was a student and son-in-law of 'Asim ibn Abi al-Najud. The 'Hafs 'an 'Asim' recitation has become the most widely practiced Qira'ah, accounting for over 95% of global Quranic readings today. It was formally adopted as the standard for Egyptian Quranic printing in 1923.",
+        'Ḥafṣ' => "Hafs ibn Sulayman al-Asadi al-Kufi (90-180 AH / 706-796 CE) was born in Baghdad and died in Kufa. He was a student and son-in-law of 'Asim ibn Abi al-Najud. The 'Hafs 'an 'Asim' recitation has become the most widely practiced Qira'ah, accounting for over 95% of global Quranic readings today. It was formally adopted as the standard for Egyptian Quranic printing in 1923.",
 
-        "Shuʿbah" => "Shu'bah ibn 'Ayyash (95-193 AH / 714-809 CE) was the other primary transmitter of 'Asim's recitation. He was known for his precision and reliability. While Hafs's transmission became more widespread globally, Shu'bah's transmission is still studied and valued in academic and scholarly circles.",
+        "Shu’bah" => "Shu'bah ibn 'Ayyash (95-193 AH / 714-809 CE) was the other primary transmitter of 'Asim's recitation. He was known for his precision and reliability. While Hafs's transmission became more widespread globally, Shu'bah's transmission is still studied and valued in academic and scholarly circles.",
 
-        'Qālūn' => "Qalun (120-220 AH / 738-835 CE), whose real name was 'Isa ibn Mina al-Zarqi, was born and died in Medina. He studied under Nafi' al-Madani who nicknamed him 'Qalun' (meaning 'good' in Roman) for the quality of his recitation. Remarkably, he was deaf and would correct his students by reading their lips. His recitation is standard in Qatar, parts of Libya and Tunisia.",
+        'Qalun' => "Qalun (120-220 AH / 738-835 CE), whose real name was 'Isa ibn Mina al-Zarqi, was born and died in Medina. He studied under Nafi' al-Madani who nicknamed him 'Qalun' (meaning 'good' in Roman) for the quality of his recitation. Remarkably, he was deaf and would correct his students by reading their lips. His recitation is standard in Qatar, parts of Libya and Tunisia.",
 
         'Warsh' => "Warsh (110-197 AH / 728-813 CE), whose real name was 'Uthman ibn Sa'id al-Qutbi al-Misri, was born in Egypt and traveled to Medina to study under Nafi' al-Madani. Nafi' gave him the nickname 'Warsh' due to his fair complexion. He became the leading reciter in Egypt. The 'Warsh 'an Nafi'' recitation is widespread in North and West Africa and was historically prevalent in Al-Andalus.",
 
-        'al-Bazzī' => "Al-Bazzi (170-250 AH / 786-864 CE), whose full name was Ahmad ibn Muhammad ibn 'Abd Allah ibn al-Qasim ibn Nafi' ibn Abi Bazzah, was the Mu'adhdhin of the Sacred Mosque in Mecca. He was one of the two primary transmitters of Ibn Kathir's recitation and was known for his mastery and precision.",
+        'Al-Bazzi' => "Al-Bazzi (170-250 AH / 786-864 CE), whose full name was Ahmad ibn Muhammad ibn 'Abd Allah ibn al-Qasim ibn Nafi' ibn Abi Bazzah, was the Mu'adhdhin of the Sacred Mosque in Mecca. He was one of the two primary transmitters of Ibn Kathir's recitation and was known for his mastery and precision.",
 
         'Qunbul' => "Qunbul (195-291 AH / 810-904 CE), whose real name was Muhammad ibn 'Abd al-Rahman al-Makhzumi, was the other primary transmitter of Ibn Kathir's recitation. He was from Mecca and was known for his reliability in transmission.",
 
-        'al-Dūrī' => "Al-Duri (150-246 AH / 767-860 CE), whose full name was Hafs ibn 'Umar ibn 'Abd al-'Aziz al-Duri, was the foremost transmitter of Abu 'Amr al-Basri's recitation. He was also a transmitter for al-Kisa'i. He was born in Dura, a neighborhood of Baghdad, from which he got his name.",
+        'Ad-Duri' => "Al-Duri (150-246 AH / 767-860 CE), whose full name was Hafs ibn 'Umar ibn 'Abd al-'Aziz al-Duri, was the foremost transmitter of Abu 'Amr al-Basri's recitation. He was also a transmitter for al-Kisa'i. He was born in Dura, a neighborhood of Baghdad, from which he got his name.",
 
-        'al-Sūsī' => "Al-Susi (died 261 AH / 874 CE), whose full name was Salih ibn Ziyad al-Susi, was the other primary transmitter of Abu 'Amr al-Basri's recitation. He was known for his precision and adherence to the exact method of recitation taught by Abu 'Amr.",
+        'As-Susi' => "Al-Susi (died 261 AH / 874 CE), whose full name was Salih ibn Ziyad al-Susi, was the other primary transmitter of Abu 'Amr al-Basri's recitation. He was known for his precision and adherence to the exact method of recitation taught by Abu 'Amr.",
 
         'Hishām' => "Hisham ibn 'Ammar (died 245 AH / 859 CE) was one of the two primary transmitters of Ibn 'Amir al-Shami's recitation. He was a renowned scholar and Imam of Damascus, known for his extensive knowledge of Quranic sciences and Arabic language.",
 
@@ -541,23 +586,23 @@ namespace :qiraat do
 
         'Khalaf' => "Khalaf al-Bazzar (150-229 AH / 767-844 CE), in his role as a transmitter of Hamzah's recitation, was one of the two primary rawiys. He later developed his own independent reading method and is counted among the ten canonical readers.",
 
-        'Khallād' => "Khallad ibn Khalid al-Shaybani (died 220 AH / 835 CE) was the other primary transmitter of Hamzah al-Zayyat's recitation. He was known for his accuracy and deep understanding of Hamzah's recitation method.",
+        'Khallad' => "Khallad ibn Khalid al-Shaybani (died 220 AH / 835 CE) was the other primary transmitter of Hamzah al-Zayyat's recitation. He was known for his accuracy and deep understanding of Hamzah's recitation method.",
 
         'Dūrī (K)' => "Al-Duri (d. 246 AH), in his role as transmitter for al-Kisa'i, represents a different transmission than his better-known transmission of Abu 'Amr's reading. He studied both readings but is more famous for the Abu 'Amr transmission.",
 
         'A. Ḥārith' => "Abu al-Harith al-Layth ibn Khalid al-Baghdadi (died 240 AH / 854 CE) was one of the transmitters of al-Kisa'i's recitation. He was known for his reliability and was considered one of the main authorities for al-Kisa'i's reading method.",
 
-        'Ibn Wardān' => "Ibn Wardan (died 160 AH / 777 CE), whose full name was 'Isa ibn Wardan al-Madani, was one of the two primary transmitters of Abu Ja'far al-Madani's recitation. He was a scholar in Medina and transmitted the reading with great precision.",
+        'Ibn Wardan' => "Ibn Wardan (died 160 AH / 777 CE), whose full name was 'Isa ibn Wardan al-Madani, was one of the two primary transmitters of Abu Ja'far al-Madani's recitation. He was a scholar in Medina and transmitted the reading with great precision.",
 
-        'Ibn Jammāz' => "Ibn Jammaz (died 170 AH / 786 CE), whose full name was Sulayman ibn Muslim ibn Jammaz, was the other primary transmitter of Abu Ja'far al-Madani's recitation. He was known for his careful preservation of the Medinan reading tradition.",
+        'Ibn Jammaz' => "Ibn Jammaz (died 170 AH / 786 CE), whose full name was Sulayman ibn Muslim ibn Jammaz, was the other primary transmitter of Abu Ja'far al-Madani's recitation. He was known for his careful preservation of the Medinan reading tradition.",
 
-        'Ruways' => "Ruways (died 238 AH / 852 CE), whose real name was Muhammad ibn al-Mutawakkil al-Lu'lu'i, was one of the two primary transmitters of Ya'qub al-Hadrami's recitation. He was born in Basra and was known for his expertise in the Basran reading traditions.",
+        'Ruwais' => "Ruwais (died 238 AH / 852 CE), whose real name was Muhammad ibn al-Mutawakkil al-Lu'lu'i, was one of the two primary transmitters of Ya'qub al-Hadrami's recitation. He was born in Basra and was known for his expertise in the Basran reading traditions.",
 
         'Rawḥ' => "Rawh ibn 'Abd al-Mu'min al-Hudhali (died 234 AH / 849 CE) was the other primary transmitter of Ya'qub al-Hadrami's recitation. He was a respected scholar in Basra and transmitted the reading with great accuracy.",
 
-        'Isḥāq' => "Ishaq ibn Ibrahim al-Marwazi (died 286 AH / 899 CE), also known as Ishaq al-Warraq, was one of the two transmitters of Khalaf's independent reading. He was highly regarded for his scholarship and precision in transmission.",
+        'Isḥaq' => "Ishaq ibn Ibrahim al-Marwazi (died 286 AH / 899 CE), also known as Ishaq al-Warraq, was one of the two transmitters of Khalaf's independent reading. He was highly regarded for his scholarship and precision in transmission.",
 
-        'Idrīs' => "Idris ibn 'Abd al-Karim al-Haddad (died 292 AH / 905 CE) was the other transmitter of Khalaf's independent reading. He was a scholar in Baghdad and was known for his mastery of multiple Quranic readings."
+        'Idris' => "Idris ibn 'Abd al-Karim al-Haddad (died 292 AH / 905 CE) was the other transmitter of Khalaf's independent reading. He was a scholar in Baghdad and was known for his mastery of multiple Quranic readings."
       }
 
       transmitter_bios_en.each do |abbr, bio|
@@ -580,21 +625,21 @@ namespace :qiraat do
       puts "\nSeeding transmitter biographies (Arabic)..."
 
       transmitter_bios_ar = {
-        'Ḥafṣ' => "حفص بن سليمان الأسدي الكوفي (90-180 هـ) ولد ببغداد وتوفي بالكوفة. كان ربيب عاصم بن أبي النجود وتلميذه. قراءة حفص عن عاصم هي أكثر القراءات انتشاراً في العالم الإسلامي اليوم. اعتُمدت قراءته معياراً لطباعة المصاحف في مصر عام 1923م.",
+        'Ḥafṣ' => "حفص بن سليمان الأسدي الكوفي (90-180 هـ) ولد ببغداد وتوفي بالكوفة. كان ربيب عاصم بن أبي النجود وتلميذه. قراءة حفص عن عاصم هي أكثر القراءات انتشاراً في العالم الإسلامي اليوم. اعتُمدت قراءته معياراً لطباعة المصاحف في مصر عام 1923م.",
 
-        "Shuʿbah" => "شعبة بن عياش (95-193 هـ) الراوي الآخر لقراءة عاصم. اشتهر بالدقة والضبط. وإن كانت رواية حفص أكثر انتشاراً، فإن رواية شعبة لا تزال معتمدة في الدراسات العلمية والأكاديمية.",
+        "Shu’bah" => "شعبة بن عياش (95-193 هـ) الراوي الآخر لقراءة عاصم. اشتهر بالدقة والضبط. وإن كانت رواية حفص أكثر انتشاراً، فإن رواية شعبة لا تزال معتمدة في الدراسات العلمية والأكاديمية.",
 
-        'Qālūn' => "قالون (120-220 هـ) واسمه عيسى بن مينا الزرقي، ولد بالمدينة وتوفي فيها. تلقى القراءة عن نافع المدني الذي لقبه 'قالون' (تعني 'جيد' بالرومية) لجودة قراءته. كان أصمّ وكان يُصحح لتلاميذه بقراءة شفاههم. قراءته معتمدة في قطر وأجزاء من ليبيا وتونس.",
+        'Qalun' => "قالون (120-220 هـ) واسمه عيسى بن مينا الزرقي، ولد بالمدينة وتوفي فيها. تلقى القراءة عن نافع المدني الذي لقبه 'قالون' (تعني 'جيد' بالرومية) لجودة قراءته. كان أصمّ وكان يُصحح لتلاميذه بقراءة شفاههم. قراءته معتمدة في قطر وأجزاء من ليبيا وتونس.",
 
         'Warsh' => "ورش (110-197 هـ) واسمه عثمان بن سعيد القبطي المصري. ولد بمصر ورحل إلى المدينة للتلقي عن نافع الذي لقبه 'ورش' لبياض لونه. صار شيخ القراء بمصر. رواية ورش عن نافع منتشرة في شمال وغرب أفريقيا وكانت سائدة في الأندلس.",
 
-        'al-Bazzī' => "البزي (170-250 هـ) واسمه أحمد بن محمد بن عبد الله. كان مؤذناً بالمسجد الحرام بمكة. أحد راويي ابن كثير المكي واشتهر بإتقانه ودقته في الرواية.",
+        'Al-Bazzi' => "البزي (170-250 هـ) واسمه أحمد بن محمد بن عبد الله. كان مؤذناً بالمسجد الحرام بمكة. أحد راويي ابن كثير المكي واشتهر بإتقانه ودقته في الرواية.",
 
         'Qunbul' => "قنبل (195-291 هـ) واسمه محمد بن عبد الرحمن المخزومي. الراوي الآخر لقراءة ابن كثير. من مكة واشتهر بالثقة في الرواية.",
 
-        'al-Dūrī' => "الدوري (150-246 هـ) واسمه حفص بن عمر بن عبد العزيز. الراوي الأول لقراءة أبي عمرو البصري وأيضاً راوٍ عن الكسائي. نسبته إلى الدور محلة ببغداد.",
+        'Ad-Duri' => "الدوري (150-246 هـ) واسمه حفص بن عمر بن عبد العزيز. الراوي الأول لقراءة أبي عمرو البصري وأيضاً راوٍ عن الكسائي. نسبته إلى الدور محلة ببغداد.",
 
-        'al-Sūsī' => "السوسي (ت. 261 هـ) واسمه صالح بن زياد السوسي. الراوي الآخر لقراءة أبي عمرو البصري. اشتهر بالدقة والالتزام بطريقة أبي عمرو.",
+        'As-Susi' => "السوسي (ت. 261 هـ) واسمه صالح بن زياد السوسي. الراوي الآخر لقراءة أبي عمرو البصري. اشتهر بالدقة والالتزام بطريقة أبي عمرو.",
 
         'Hishām' => "هشام بن عمار (ت. 245 هـ) أحد راويي ابن عامر الشامي. كان عالماً وإماماً بدمشق مشهوراً بعلمه الواسع بعلوم القرآن واللغة العربية.",
 
@@ -602,23 +647,23 @@ namespace :qiraat do
 
         'Khalaf' => "خلف البزار (150-229 هـ) بصفته راوياً عن حمزة كان أحد الراويين الرئيسيين. ثم أسس قراءته المستقلة وعُدّ من القراء العشرة.",
 
-        'Khallād' => "خلاد بن خالد الشيباني (ت. 220 هـ) الراوي الآخر لقراءة حمزة الزيات. اشتهر بالدقة والفهم العميق لطريقة حمزة.",
+        'Khallad' => "خلاد بن خالد الشيباني (ت. 220 هـ) الراوي الآخر لقراءة حمزة الزيات. اشتهر بالدقة والفهم العميق لطريقة حمزة.",
 
         'Dūrī (K)' => "الدوري (ت. 246 هـ) في روايته عن الكسائي تمثل رواية مختلفة عن روايته الأشهر عن أبي عمرو. تلقى القراءتين لكنه أشهر برواية أبي عمرو.",
 
         'A. Ḥārith' => "أبو الحارث الليث بن خالد البغدادي (ت. 240 هـ) أحد رواة الكسائي. اشتهر بالثقة وكان من أهم المراجع لقراءة الكسائي.",
 
-        'Ibn Wardān' => "ابن وردان (ت. 160 هـ) واسمه عيسى بن وردان المدني. أحد راويي أبي جعفر المدني. عالم بالمدينة نقل القراءة بدقة عالية.",
+        'Ibn Wardan' => "ابن وردان (ت. 160 هـ) واسمه عيسى بن وردان المدني. أحد راويي أبي جعفر المدني. عالم بالمدينة نقل القراءة بدقة عالية.",
 
-        'Ibn Jammāz' => "ابن جماز (ت. 170 هـ) واسمه سليمان بن مسلم بن جماز. الراوي الآخر لأبي جعفر. اشتهر بالحفاظ على التقليد المدني في القراءة.",
+        'Ibn Jammaz' => "ابن جماز (ت. 170 هـ) واسمه سليمان بن مسلم بن جماز. الراوي الآخر لأبي جعفر. اشتهر بالحفاظ على التقليد المدني في القراءة.",
 
-        'Ruways' => "رويس (ت. 238 هـ) واسمه محمد بن المتوكل اللؤلؤي. أحد راويي يعقوب الحضرمي. من البصرة واشتهر بخبرته في القراءات البصرية.",
+        'Ruwais' => "رويس (ت. 238 هـ) واسمه محمد بن المتوكل اللؤلؤي. أحد راويي يعقوب الحضرمي. من البصرة واشتهر بخبرته في القراءات البصرية.",
 
         'Rawḥ' => "روح بن عبد المؤمن الهذلي (ت. 234 هـ) الراوي الآخر ليعقوب الحضرمي. عالم بالبصرة نقل القراءة بدقة عالية.",
 
-        'Isḥāq' => "إسحاق بن إبراهيم المروزي (ت. 286 هـ) المعروف بإسحاق الوراق. أحد راويي خلف في قراءته المستقلة. اشتهر بالعلم والدقة.",
+        'Isḥaq' => "إسحاق بن إبراهيم المروزي (ت. 286 هـ) المعروف بإسحاق الوراق. أحد راويي خلف في قراءته المستقلة. اشتهر بالعلم والدقة.",
 
-        'Idrīs' => "إدريس بن عبد الكريم الحداد (ت. 292 هـ) الراوي الآخر لخلف في قراءته المستقلة. عالم ببغداد وكان متقناً لعدة قراءات."
+        'Idris' => "إدريس بن عبد الكريم الحداد (ت. 292 هـ) الراوي الآخر لخلف في قراءته المستقلة. عالم ببغداد وكان متقناً لعدة قراءات."
       }
 
       transmitter_bios_ar.each do |abbr, bio|
@@ -684,7 +729,7 @@ namespace :qiraat do
     QiraatReadingAttribution.create!(qiraat_reading: reading1, qiraat_reader: asim)
     QiraatReadingAttribution.create!(qiraat_reading: reading1, qiraat_reader: yaqub)
     LocalizedContent.create!(resource: reading1, language: english, content_type: 'transliteration', text: 'lā yahiddī*')
-    LocalizedContent.create!(resource: reading1, language: english, content_type: 'explanation', text: '*Shuʿbah from ʿĀṣim actually has yihiddī, included here for simplification.')
+    LocalizedContent.create!(resource: reading1, language: english, content_type: 'explanation', text: '*Shu’bah from ʿĀṣim actually has yihiddī, included here for simplification.')
     LocalizedContent.create!(resource: reading1, language: arabic, content_type: 'explanation', text: '*قرأ شعبة عن عاصم بكسر الياء (يِهِدِّي)، ولكن أُثبتت هنا للتسهيل.')
     puts "  ✓ Reading 1: يَهِدِّي (ʿĀṣim, Yaʿqūb)"
 
@@ -1026,8 +1071,8 @@ namespace :qiraat do
     yaqub = QiraatReader.find_by!(abbreviation: 'Yaʿqūb')
 
     # Find transmitters
-    hafs = QiraatTransmitter.find_by!(abbreviation: 'Ḥafṣ')
-    shubah = QiraatTransmitter.find_by!(abbreviation: "Shuʿbah")
+    hafs = QiraatTransmitter.find_by!(abbreviation: 'Ḥafṣ')
+    shubah = QiraatTransmitter.find_by!(abbreviation: "Shu’bah")
 
     QiraatSeedHelpers.clear_juncture_data_for_verse(verse)
     puts "  ↻ Cleared existing data"
@@ -1056,14 +1101,14 @@ namespace :qiraat do
     puts "  ✓ Created juncture 1 with 2 segments (words 1-1, 15-16)"
 
     # Reading 1: ءَاتُونِي...قَالَ ءَاتُونِي - White (majority)
-    # Ḥafṣ (transmitter), Khalaf, al-Kisāʾī, ʿĀṣim, Abū Jaʿfar, Nāfiʿ, Ibn Kathīr, Abū ʿAmr, Yaʿqūb, Ibn ʿĀmir
+    # Ḥafṣ (transmitter), Khalaf, al-Kisāʾī, ʿĀṣim, Abū Jaʿfar, Nāfiʿ, Ibn Kathīr, Abū ʿAmr, Yaʿqūb, Ibn ʿĀmir
     reading1 = QiraatReading.create!(
       qiraat_juncture: juncture1,
       text_uthmani: 'ءَاتُونِي...قَالَ ءَاتُونِي',
       position: 1,
       color: SEED_COLORS[:white]
     )
-    QiraatReadingAttribution.create!(qiraat_reading: reading1, qiraat_transmitter: hafs) # Transmitter-level for Ḥafṣ
+    QiraatReadingAttribution.create!(qiraat_reading: reading1, qiraat_transmitter: hafs) # Transmitter-level for Ḥafṣ
     QiraatReadingAttribution.create!(qiraat_reading: reading1, qiraat_reader: khalaf)
     QiraatReadingAttribution.create!(qiraat_reading: reading1, qiraat_reader: kisai)
     QiraatReadingAttribution.create!(qiraat_reading: reading1, qiraat_reader: asim)
@@ -1101,23 +1146,23 @@ namespace :qiraat do
     QiraatReadingExplanationMembership.create!(qiraat_reading: reading2, qiraat_reading_explanation: exp2)
     puts "  ✓ Reading 2: ءَاتُونِي...قَالَ ائْتُونِي (Ḥamzah)"
 
-    # Reading 3: ائْتُونِي...قَالَ ائْتُونِي - Blue (Shuʿbah only)
+    # Reading 3: ائْتُونِي...قَالَ ائْتُونِي - Blue (Shu’bah only)
     reading3 = QiraatReading.create!(
       qiraat_juncture: juncture1,
       text_uthmani: 'ائْتُونِي...قَالَ ائْتُونِي',
       position: 3,
       color: SEED_COLORS[:blue]
     )
-    QiraatReadingAttribution.create!(qiraat_reading: reading3, qiraat_transmitter: shubah) # Transmitter-level for Shuʿbah
+    QiraatReadingAttribution.create!(qiraat_reading: reading3, qiraat_transmitter: shubah) # Transmitter-level for Shu’bah
     LocalizedContent.create!(resource: reading3, language: english, content_type: 'transliteration', text: 'ītūnī...qāla ʾtūnī*')
     LocalizedContent.create!(resource: reading3, language: english, content_type: 'translation', text: '"bring me iron blocks...bring me copper to pour"')
     LocalizedContent.create!(resource: reading3, language: arabic, content_type: 'translation', text: '"ائتوني زبر الحديد (جيئو بي)... ائتوني أفرغ عليه قطرا"')
     # Shared explanation for reading 3
     exp3 = QiraatReadingExplanation.create!(source: 'Scholarly consensus', position: 1)
-    LocalizedContent.create!(resource: exp3, language: english, content_type: 'explanation', text: "In this reading, both occurrences of the verbs are form I, 'come', but there is an implied ba' particle, hence it means 'bring'. *When joining to the previous verse, this is pronounced radman-iʾtūnī. Another narration from Shuʿbah has the second word as ātūnī, hence 'come...give/bring'.")
+    LocalizedContent.create!(resource: exp3, language: english, content_type: 'explanation', text: "In this reading, both occurrences of the verbs are form I, 'come', but there is an implied ba' particle, hence it means 'bring'. *When joining to the previous verse, this is pronounced radman-iʾtūnī. Another narration from Shu’bah has the second word as ātūnī, hence 'come...give/bring'.")
     LocalizedContent.create!(resource: exp3, language: arabic, content_type: 'explanation', text: "في هذه القراءة، كلا الفعلين من الوزن الأول (أتى)، ولكن بتضمين معنى الباء، فتفيد معنى 'جيئوني بـ'... *عند الوصل بالآية السابقة، تُلفظ 'ردماً ائتوني'. وهناك رواية أخرى عن شعبة بلفظ 'آتوني' للكلمة الثانية، أي 'ائتوني...أعطوني/جيئوني بـ'.")
     QiraatReadingExplanationMembership.create!(qiraat_reading: reading3, qiraat_reading_explanation: exp3)
-    puts "  ✓ Reading 3: ائْتُونِي...قَالَ ائْتُونِي (Shuʿbah)"
+    puts "  ✓ Reading 3: ائْتُونِي...قَالَ ائْتُونِي (Shu’bah)"
 
     # Combined explanation for juncture 1
     LocalizedContent.create!(
@@ -1148,7 +1193,7 @@ namespace :qiraat do
     )
     puts "  ✓ Created juncture 2 with 1 segment (word 8-8)"
 
-    # Reading 1: الصَّدَفَيْنِ - White (Ḥamzah, Khalaf, al-Kisāʾī, Abū Jaʿfar, Nāfiʿ, Ḥafṣ)
+    # Reading 1: الصَّدَفَيْنِ - White (Ḥamzah, Khalaf, al-Kisāʾī, Abū Jaʿfar, Nāfiʿ, Ḥafṣ)
     reading4 = QiraatReading.create!(
       qiraat_juncture: juncture2,
       text_uthmani: 'الصَّدَفَيْنِ',
@@ -1160,9 +1205,9 @@ namespace :qiraat do
     QiraatReadingAttribution.create!(qiraat_reading: reading4, qiraat_reader: kisai)
     QiraatReadingAttribution.create!(qiraat_reading: reading4, qiraat_reader: abu_jafar)
     QiraatReadingAttribution.create!(qiraat_reading: reading4, qiraat_reader: nafi)
-    QiraatReadingAttribution.create!(qiraat_reading: reading4, qiraat_transmitter: hafs) # Transmitter-level for Ḥafṣ
+    QiraatReadingAttribution.create!(qiraat_reading: reading4, qiraat_transmitter: hafs) # Transmitter-level for Ḥafṣ
     LocalizedContent.create!(resource: reading4, language: english, content_type: 'transliteration', text: 'bayna ṣ-ṣadafayni')
-    puts "  ✓ Reading 1: الصَّدَفَيْنِ (Ḥamzah, Khalaf, al-Kisāʾī, Abū Jaʿfar, Nāfiʿ, Ḥafṣ)"
+    puts "  ✓ Reading 1: الصَّدَفَيْنِ (Ḥamzah, Khalaf, al-Kisāʾī, Abū Jaʿfar, Nāfiʿ, Ḥafṣ)"
 
     # Reading 2: الصُّدُفَيْنِ - Green (Ibn ʿĀmir, Ibn Kathīr, Abū ʿAmr, Yaʿqūb)
     reading5 = QiraatReading.create!(
@@ -1178,16 +1223,16 @@ namespace :qiraat do
     LocalizedContent.create!(resource: reading5, language: english, content_type: 'transliteration', text: 'bayna ṣ-ṣudufayni')
     puts "  ✓ Reading 2: الصُّدُفَيْنِ (Ibn ʿĀmir, Ibn Kathīr, Abū ʿAmr, Yaʿqūb)"
 
-    # Reading 3: الصُّدْفَيْنِ - Blue (Shuʿbah only)
+    # Reading 3: الصُّدْفَيْنِ - Blue (Shu’bah only)
     reading6 = QiraatReading.create!(
       qiraat_juncture: juncture2,
       text_uthmani: 'الصُّدْفَيْنِ',
       position: 3,
       color: SEED_COLORS[:blue]
     )
-    QiraatReadingAttribution.create!(qiraat_reading: reading6, qiraat_transmitter: shubah) # Transmitter-level for Shuʿbah
+    QiraatReadingAttribution.create!(qiraat_reading: reading6, qiraat_transmitter: shubah) # Transmitter-level for Shu’bah
     LocalizedContent.create!(resource: reading6, language: english, content_type: 'transliteration', text: 'bayna ṣ-ṣudfayni')
-    puts "  ✓ Reading 3: الصُّدْفَيْنِ (Shuʿbah)"
+    puts "  ✓ Reading 3: الصُّدْفَيْنِ (Shu’bah)"
 
     # Shared translation for all 3 readings in juncture 2
     shared_translation = QiraatReadingTranslation.create!(source: 'Scholarly consensus', position: 1)
