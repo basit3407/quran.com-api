@@ -10,4 +10,26 @@ json.object! do
                     :text
     end
   end
+
+  if @resources.present?
+    json.resources do
+      json.array! @resources do |resource|
+        json.object! do
+          json.id resource.id
+          json.name resource.name
+          json.slug resource.slug
+          json.author_name resource.author_name
+          json.language_name resource.language_name
+
+          if resource.translated_name.present?
+            json.translated_name do
+              json.object! do
+                json.extract! resource.translated_name, :name, :language_name
+              end
+            end
+          end
+        end
+      end
+    end
+  end
 end
