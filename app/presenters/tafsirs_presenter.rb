@@ -52,7 +52,7 @@ class TafsirsPresenter < VersesPresenter
   end
 
   def load_verses(from, to)
-    verse_finder = Qdc::VerseFinder.new(from: from, to: to)
+    verse_finder = Qdc::VerseFinder.new(from: from, to: to, per_page: 'all')
 
     verse_finder.load_verses('by_range',
                              fetch_locale,
