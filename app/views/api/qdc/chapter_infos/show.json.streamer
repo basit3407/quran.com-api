@@ -1,16 +1,20 @@
 json.object! do
-  json.chapter_info do
-    json.object! do
-      json.extract! @chapter_info,
-                    :id,
-                    :chapter_id,
-                    :language_name,
-                    :short_text,
-                    :source,
-                    :text
+  if @chapter_info.present?
+    json.chapter_info do
+      json.object! do
+        json.extract! @chapter_info,
+                      :id,
+                      :chapter_id,
+                      :language_name,
+                      :short_text,
+                      :source,
+                      :text
 
-      json.resourceId @chapter_info.resource_content_id
+        json.resourceId @chapter_info.resource_content_id
+      end
     end
+  else
+    json.chapter_info nil
   end
 
   if @resources.present?
