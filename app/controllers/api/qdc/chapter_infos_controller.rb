@@ -33,7 +33,6 @@ module Api::Qdc
 
       # Build the query for resources in the determined language
       ResourceContent
-        .allowed_to_share
         .approved
         .where(id: chapter_info_scope.where(language_id: language.id).select(:resource_content_id))
         .where(language_id: language.id)
@@ -123,7 +122,7 @@ module Api::Qdc
       chapter_info_scope
         .where(language_id: language.id)
         .joins(:resource_content)
-        .merge(ResourceContent.approved.allowed_to_share.where(language_id: language.id))
+        .merge(ResourceContent.approved.where(language_id: language.id))
         .find_by(resource_contents: id_or_slug_filter)
     end
   end
