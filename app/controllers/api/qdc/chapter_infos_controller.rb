@@ -12,83 +12,31 @@ module Api::Qdc
     protected
 
     def chapter_info
-      finder = ChapterFinder.new
-      chapter = finder.find(params[:id])
+      resource_id = params[:resource_id].presence
+      language = resolved_language
+      return nil if language.nil?
 
-      query = ChapterInfo.where(chapter_id: chapter.id)
-
-      # Check if resource_id parameter was provided
-      resource_id_param = params[:resource_id]
-      resource_requested = resource_id_param.present?
-
-      # Determine the requested language
-      requested_language = Language.find_with_id_or_iso_code(fetch_locale)
-
-      # Base case: if no language specified, fallback to default (en)
-      target_language = requested_language || Language.default
-
-      # CRITICAL: Check if the target language has ANY chapter_info resources at all
-      language_has_resources = query.where(language_id: target_language.id).exists?
-
-      if !language_has_resources && requested_language
-        # Language doesn't have any chapter_info resources
-        # If language is 'ar' or 'en', return null (don't fallback)
-        if target_language.iso_code == 'ar' || target_language.iso_code == 'en'
-          return nil
-        else
-          # For all other languages, fallback the entire context to 'en'
-          target_language = Language.default
-        end
-      end
-
-      # Now apply resource_id filter within the determined language context
-      if resource_requested
-        # Find the resource within the target language context
-        resource = find_resource_in_language(resource_id_param, chapter, target_language)
-
-        # If resource not found in the target language, return null
-        return nil if resource.nil?
-
-        # Return chapter_info for the specific resource and determined language
-        query.find_by(language_id: target_language.id, resource_content_id: resource.id)
+      if resource_id
+        chapter_info_for_resource(resource_id, language)
       else
         # No resource_id specified - return highest priority resource for determined language
-        query.joins(:resource_content)
-             .order('resource_contents.priority ASC')
-             .find_by(language_id: target_language.id)
+        chapter_info_scope
+          .joins(:resource_content)
+          .order('resource_contents.priority ASC')
+          .find_by(language_id: language.id)
       end
     end
 
     def resources
-      finder = ChapterFinder.new
-      chapter = finder.find(params[:id])
-
-      # Determine the requested language
-      requested_language = Language.find_with_id_or_iso_code(fetch_locale)
-
-      # Base case: if no language specified, fallback to default (en)
-      target_language = requested_language || Language.default
-
-      # CRITICAL: Check if the target language has ANY chapter_info resources at all
-      language_has_resources = ChapterInfo.where(chapter_id: chapter.id, language_id: target_language.id).exists?
-
-      if !language_has_resources && requested_language
-        # Language doesn't have any chapter_info resources
-        # If language is 'ar' or 'en', return empty (don't fallback)
-        if target_language.iso_code == 'ar' || target_language.iso_code == 'en'
-          return []
-        else
-          # For all other languages, fallback the entire context to 'en'
-          target_language = Language.default
-        end
-      end
+      language = resolved_language
+      return [] if language.nil?
 
       # Build the query for resources in the determined language
       ResourceContent
         .allowed_to_share
         .approved
-        .where(id: ChapterInfo.where(chapter_id: chapter.id).select(:resource_content_id))
-        .where(language_id: target_language.id)
+        .where(id: chapter_info_scope.where(language_id: language.id).select(:resource_content_id))
+        .where(language_id: language.id)
         .select('DISTINCT resource_contents.*')
         .order(priority: :asc)
         .includes(:translated_names)
@@ -98,57 +46,85 @@ module Api::Qdc
       params[:include_resources].to_s == 'true'
     end
 
-    # Find a resource by ID or slug within a specific language context
-    def find_resource_in_language(resource_id, chapter, target_language)
-      # Find the resource by ID or slug
-      resource = if resource_id.to_s.match?(/^\d+$/)
-        ResourceContent.find_by(id: resource_id.to_i)
-      else
-        ResourceContent.find_by(slug: resource_id)
-      end
+    def resource_filter
+      # This method is kept for backward compatibility but delegates to chapter_info_for_resource
+      @resource_filter ||= begin
+        resource_id = params[:resource_id].presence
+        if resource_id.present?
+          language = resolved_language
 
-      # Only return the resource if it meets all security criteria:
-      # 1. Resource exists
-      # 2. It's approved
-      # 3. It's allowed to share (not rejected)
-      # 4. It has chapter_info for this specific chapter
-      # 5. It belongs to the target language
-      if resource&.approved? &&
-         !resource&.share_permission_is_rejected? &&
-         ChapterInfo.where(chapter_id: chapter.id, resource_content_id: resource.id).exists? &&
-         resource.language_id == target_language.id
-        resource
-      else
-        nil
+          if language
+            chapter_info_for_resource(resource_id, language)&.resource_content_id
+          end
+        end
       end
     end
 
-    def resource_filter
-      # This method is kept for backward compatibility but delegates to find_resource_in_language
-      @resource_filter ||= begin
-        resource_id = params[:resource_id]
+    def chapter
+      @chapter ||= ChapterFinder.new.find(params[:id])
+    end
 
-        if resource_id.present?
-          finder = ChapterFinder.new
-          chapter = finder.find(params[:id])
-          requested_language = Language.find_with_id_or_iso_code(fetch_locale)
+    def chapter_info_scope
+      @chapter_info_scope ||= ChapterInfo.where(chapter_id: chapter.id)
+    end
 
-          # Determine the target language (with fallback logic)
-          target_language = requested_language || Language.default
+    def language_param_present?
+      params[:language].present? || params[:locale].present?
+    end
 
-          # Check if language has resources
-          language_has_resources = ChapterInfo.where(chapter_id: chapter.id, language_id: target_language.id).exists?
+    def requested_language
+      return nil unless language_param_present?
 
-          if !language_has_resources && requested_language
-            if target_language.iso_code != 'ar' && target_language.iso_code != 'en'
-              target_language = Language.default
-            end
-          end
+      @requested_language ||= Language.find_with_id_or_iso_code(fetch_locale)
+    end
 
-          resource = find_resource_in_language(resource_id, chapter, target_language)
-          resource&.id
+    def default_language
+      @default_language ||= Language.default
+    end
+
+    def resolved_language
+      return @resolved_language if defined?(@resolved_language)
+
+      language = requested_language || default_language
+
+      if language_param_present?
+        if language_has_resources?(language)
+          @resolved_language = language
+        elsif no_fallback_language?(language)
+          @resolved_language = nil
+        else
+          @resolved_language = default_language
         end
+      else
+        @resolved_language = language
       end
+    end
+
+    def no_fallback_language?(language)
+      language.iso_code == 'ar' || language.iso_code == 'en'
+    end
+
+    def language_has_resources?(language)
+      return false if language.nil?
+
+      @language_has_resources ||= {}
+      @language_has_resources[language.id] = chapter_info_scope.where(language_id: language.id).exists? unless @language_has_resources.key?(language.id)
+      @language_has_resources[language.id]
+    end
+
+    # Find chapter_info by resource ID or slug within a specific language context
+    def chapter_info_for_resource(resource_id, language)
+      id_or_slug_filter = if resource_id.to_s.match?(/^\d+$/)
+        { id: resource_id.to_i }
+      else
+        { slug: resource_id }
+      end
+
+      chapter_info_scope
+        .where(language_id: language.id)
+        .joins(:resource_content)
+        .merge(ResourceContent.approved.allowed_to_share.where(language_id: language.id))
+        .find_by(resource_contents: id_or_slug_filter)
     end
   end
 end
