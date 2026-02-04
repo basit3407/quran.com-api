@@ -38,7 +38,7 @@ module Api::Qdc
         .where(language_id: language.id)
         .select('DISTINCT resource_contents.*')
         .order(priority: :asc)
-        .includes(:translated_names)
+        .includes(:translated_name)
     end
 
     def include_resources?
