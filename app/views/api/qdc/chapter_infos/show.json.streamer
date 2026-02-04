@@ -8,6 +8,8 @@ json.object! do
                     :short_text,
                     :source,
                     :text
+
+      json.resourceId @chapter_info.resource_content_id
     end
   end
 
