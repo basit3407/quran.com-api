@@ -10,14 +10,14 @@ json.object! do
                       :source,
                       :text
 
-        json.resourceId @chapter_info.resource_content_id
+        json.resource_id @chapter_info.resource_content_id
       end
     end
   else
     json.chapter_info nil
   end
 
-  if @resources.present?
+  unless @resources.nil?
     json.resources do
       json.array! @resources do |resource|
         json.object! do

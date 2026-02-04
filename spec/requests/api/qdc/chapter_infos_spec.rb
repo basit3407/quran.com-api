@@ -60,6 +60,7 @@ RSpec.describe 'QDC Chapter Info API', type: :request do
   let!(:english_resource_secondary) do
     ResourceContent.create!(
       name: 'Secondary Info',
+      slug: 'secondary-info',
       language_id: english.id,
       language_name: english.name,
       sub_type: ResourceContent::SubType::Info,
@@ -104,7 +105,7 @@ RSpec.describe 'QDC Chapter Info API', type: :request do
       expect(response).to have_http_status(:ok)
       chapter_info = response_json['chapter_info']
 
-      expect(chapter_info['resourceId']).to eq(english_resource_primary.id)
+      expect(chapter_info['resource_id']).to eq(english_resource_primary.id)
       expect(chapter_info['text']).to eq('Primary info')
       expect(response_json).not_to have_key('resources')
     end
@@ -115,7 +116,7 @@ RSpec.describe 'QDC Chapter Info API', type: :request do
       expect(response).to have_http_status(:ok)
       chapter_info = response_json['chapter_info']
 
-      expect(chapter_info['resourceId']).to eq(english_resource_primary.id)
+      expect(chapter_info['resource_id']).to eq(english_resource_primary.id)
       expect(chapter_info['language_name']).to eq('English')
     end
 
@@ -139,7 +140,17 @@ RSpec.describe 'QDC Chapter Info API', type: :request do
       expect(response).to have_http_status(:ok)
       chapter_info = response_json['chapter_info']
 
-      expect(chapter_info['resourceId']).to eq(english_resource_secondary.id)
+      expect(chapter_info['resource_id']).to eq(english_resource_secondary.id)
+      expect(chapter_info['text']).to eq('Secondary info')
+    end
+
+    it 'resolves resource_id by slug after language fallback' do
+      get endpoint, params: { language: 'bn', resource_id: english_resource_secondary.slug }
+
+      expect(response).to have_http_status(:ok)
+      chapter_info = response_json['chapter_info']
+
+      expect(chapter_info['resource_id']).to eq(english_resource_secondary.id)
       expect(chapter_info['text']).to eq('Secondary info')
     end
 
@@ -173,7 +184,7 @@ RSpec.describe 'QDC Chapter Info API', type: :request do
       expect(response).to have_http_status(:ok)
       resources = response_json['resources']
 
-      expect(resources).to be_nil.or eq([])
+      expect(resources).to eq([])
     end
   end
 end

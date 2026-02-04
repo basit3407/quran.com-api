@@ -21,9 +21,11 @@ module Api::Qdc
       else
         # No resource_id specified - return highest priority resource for determined language
         chapter_info_scope
+          .where(language_id: language.id)
           .joins(:resource_content)
+          .merge(ResourceContent.approved.where(language_id: language.id))
           .order('resource_contents.priority ASC')
-          .find_by(language_id: language.id)
+          .first
       end
     end
 
@@ -32,13 +34,16 @@ module Api::Qdc
       return [] if language.nil?
 
       # Build the query for resources in the determined language
-      ResourceContent
+      list = ResourceContent
         .approved
         .where(id: chapter_info_scope.where(language_id: language.id).select(:resource_content_id))
         .where(language_id: language.id)
-        .select('DISTINCT resource_contents.*')
+        .distinct
         .order(priority: :asc)
-        .includes(:translated_name)
+        .eager_load(:translated_name)
+
+      translated = eager_load_translated_name(list)
+      translated.none? ? list : translated
     end
 
     def include_resources?
@@ -107,8 +112,13 @@ module Api::Qdc
       return false if language.nil?
 
       @language_has_resources ||= {}
-      @language_has_resources[language.id] = chapter_info_scope.where(language_id: language.id).exists? unless @language_has_resources.key?(language.id)
-      @language_has_resources[language.id]
+      return @language_has_resources[language.id] if @language_has_resources.key?(language.id)
+
+      @language_has_resources[language.id] = chapter_info_scope
+        .where(language_id: language.id)
+        .joins(:resource_content)
+        .merge(ResourceContent.approved.where(language_id: language.id))
+        .exists?
     end
 
     # Find chapter_info by resource ID or slug within a specific language context
