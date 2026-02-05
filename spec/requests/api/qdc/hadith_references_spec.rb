@@ -84,7 +84,8 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       allow(HadithReference).to receive(:for_verse_index).with(verse.verse_index).and_return(relation)
       allow(relation).to receive(:order)
         .with(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
-        .and_return([reference_one, reference_two, reference_three])
+        .and_return(relation)
+      allow(relation).to receive(:to_a).and_return([reference_one, reference_two, reference_three])
 
       stub_ayah_key_lookup(
         12011 => '12:11',
@@ -97,9 +98,11 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
 
-      expect(json['verse']['verse_key']).to eq('12:12')
-      expect(json['verse']['verse_number']).to eq(12)
-      expect(json['verse']['chapter_number']).to eq(12)
+      expect(json['verse_key']).to eq('12:12')
+      expect(json['verse_number']).to eq(12)
+      expect(json['chapter_number']).to eq(12)
+      expect(json['language']).to eq('en')
+      expect(json['direction']).to eq('ltr')
 
       expect(json['hadith_references'].map { |reference| reference['id'] }).to eq([10, 11, 12])
 
@@ -112,10 +115,6 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(first['surah_number']).to eq(12)
       expect(first['ayah_start_number']).to eq(11)
       expect(first['ayah_end_number']).to eq(12)
-
-      expect(json['meta']['total_references']).to eq(3)
-      expect(json['meta']['language']).to eq('en')
-      expect(json['meta']['direction']).to eq('ltr')
     end
 
     it 'returns empty array when verse has no references' do
@@ -123,15 +122,20 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       allow(HadithReference).to receive(:for_verse_index).with(verse.verse_index).and_return(relation)
       allow(relation).to receive(:order)
         .with(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
-        .and_return([])
+        .and_return(relation)
+      allow(relation).to receive(:to_a).and_return([])
 
       get "/api/qdc/hadith_references/by_ayah/#{ayah_key}"
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
 
+      expect(json['verse_key']).to eq('12:12')
+      expect(json['verse_number']).to eq(12)
+      expect(json['chapter_number']).to eq(12)
       expect(json['hadith_references']).to eq([])
-      expect(json['meta']['total_references']).to eq(0)
+      expect(json['language']).to eq('en')
+      expect(json['direction']).to eq('ltr')
     end
 
     it 'returns error for invalid ayah key format' do
@@ -153,6 +157,116 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       json = JSON.parse(response.body)
 
       expect(json['error']['code']).to eq('NOT_FOUND')
+    end
+  end
+
+  describe 'GET /api/qdc/hadith_references/by_ayah/:ayah_key/hadiths' do
+    let(:ayah_key) { '12:12' }
+    let(:verse) do
+      instance_double(Verse,
+                      verse_key: ayah_key,
+                      verse_index: 12012)
+    end
+
+    let(:relation) { instance_double(ActiveRecord::Relation) }
+    let(:sunnah_api) { instance_double(SunnahApi) }
+
+    let(:reference_one) do
+      instance_double(HadithReference,
+                      arabic_urn: 101,
+                      english_urn: 201)
+    end
+
+    let(:reference_two) do
+      instance_double(HadithReference,
+                      arabic_urn: 102,
+                      english_urn: 202)
+    end
+
+    let(:reference_three) do
+      instance_double(HadithReference,
+                      arabic_urn: 103,
+                      english_urn: 203)
+    end
+
+    let(:reference_four) do
+      instance_double(HadithReference,
+                      arabic_urn: 104,
+                      english_urn: 204)
+    end
+
+    let(:reference_five) do
+      instance_double(HadithReference,
+                      arabic_urn: 105,
+                      english_urn: 205)
+    end
+
+    before do
+      allow(Verse).to receive(:find_by).with(verse_key: ayah_key).and_return(verse)
+      allow(HadithReference).to receive(:for_verse_index).with(verse.verse_index).and_return(relation)
+      allow(relation).to receive(:order)
+        .with(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
+        .and_return(relation)
+      allow(SunnahApi).to receive(:instance).and_return(sunnah_api)
+    end
+
+    it 'returns paginated hadiths using english URNs by default' do
+      allow(relation).to receive(:limit).with(5).and_return(relation)
+      allow(relation).to receive(:offset).with(0).and_return([
+        reference_one, reference_two, reference_three, reference_four, reference_five
+      ])
+
+      expect(sunnah_api).to receive(:hadith_by_urns)
+        .with([201, 202, 203, 204], language: 'en')
+        .and_return('data' => [
+          { 'urn' => 201 },
+          { 'urn' => 202 },
+          { 'urn' => 203 },
+          { 'urn' => 204 }
+        ])
+
+      get "/api/qdc/hadith_references/by_ayah/#{ayah_key}/hadiths"
+
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+
+      expect(json['hadiths'].size).to eq(4)
+      expect(json['hadiths'].first['urn']).to eq(201)
+      expect(json['page']).to eq(1)
+      expect(json['limit']).to eq(4)
+      expect(json['has_more']).to eq(true)
+      expect(json['language']).to eq('en')
+      expect(json['direction']).to eq('ltr')
+    end
+
+    it 'uses arabic URNs when language is ar and respects page/limit' do
+      arabic_language = instance_double(Language, iso_code: 'ar', direction: 'rtl')
+      allow(Language).to receive(:find_with_id_or_iso_code).with('ar').and_return(arabic_language)
+
+      allow(relation).to receive(:limit).with(3).and_return(relation)
+      allow(relation).to receive(:offset).with(2).and_return([
+        reference_three, reference_four, reference_five
+      ])
+
+      expect(sunnah_api).to receive(:hadith_by_urns)
+        .with([103, 104], language: 'ar')
+        .and_return('data' => [
+          { 'urn' => 103 },
+          { 'urn' => 104 }
+        ])
+
+      get "/api/qdc/hadith_references/by_ayah/#{ayah_key}/hadiths", params: { page: 2, limit: 2, language: 'ar' }
+
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+
+      expect(json['hadiths'].size).to eq(2)
+      expect(json['hadiths'].first['urn']).to eq(103)
+      expect(json['page']).to eq(2)
+      expect(json['limit']).to eq(2)
+      expect(json['has_more']).to eq(true)
+      expect(json['language']).to eq('ar')
+      expect(json['direction']).to eq('rtl')
     end
   end
 

@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+﻿# frozen_string_literal: true
 
 require 'rails_helper'
 
@@ -283,18 +283,18 @@ RSpec.describe SunnahApi do
                 'body' => 'Narrated Umar bin Al-Khattab in English...',
                 'urn' => 31,
                 'grades' => [
-                  { 'lang' => 'en', 'graded_by' => 'Ahmad Muhammad Shakir', 'grade' => 'Sahih' },
-                  { 'lang' => 'en', 'graded_by' => 'Another Scholar', 'grade' => 'Hasan' }
+                  { 'graded_by' => 'Ahmad Muhammad Shakir', 'grade' => 'Sahih' },
+                  { 'graded_by' => 'Another Scholar', 'grade' => 'Hasan' }
                 ]
               },
               {
                 'lang' => 'ar',
                 'chapterNumber' => '1',
-                'chapterTitle' => 'الوحي',
-                'body' => 'حدثنا عمر بن الخطاب بالعربية...',
+                'chapterTitle' => 'Ø§Ù„ÙˆØ­ÙŠ',
+                'body' => 'Ø­Ø¯Ø«Ù†Ø§ Ø¹Ù…Ø± Ø¨Ù† Ø§Ù„Ø®Ø·Ø§Ø¨ Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©...',
                 'urn' => 32,
                 'grades' => [
-                  { 'lang' => 'ar', 'graded_by' => 'العلماء', 'grade' => 'صحيح' }
+                  { 'graded_by' => 'Ø§Ù„Ø¹Ù„Ù…Ø§Ø¡', 'grade' => 'ØµØ­ÙŠØ­' }
                 ]
               }
             ]
@@ -324,7 +324,7 @@ RSpec.describe SunnahApi do
         # Should only have body and urn from hadith, not chapterNumber or chapterTitle
         expect(result['data'].first).to include('en_body' => 'Narrated Umar bin Al-Khattab in English...')
         expect(result['data'].first).to include('en_urn' => 31)
-        expect(result['data'].first).to include('ar_body' => 'حدثنا عمر بن الخطاب بالعربية...')
+        expect(result['data'].first).to include('ar_body' => 'Ø­Ø¯Ø«Ù†Ø§ Ø¹Ù…Ø± Ø¨Ù† Ø§Ù„Ø®Ø·Ø§Ø¨ Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©...')
         expect(result['data'].first).to include('ar_urn' => 32)
 
         # Should NOT have chapterNumber or chapterTitle
@@ -333,12 +333,12 @@ RSpec.describe SunnahApi do
         expect(result['data'].first).not_to have_key('ar_chapterNumber')
         expect(result['data'].first).not_to have_key('ar_chapterTitle')
 
-        # Should have combined grades from all hadith objects (as array of objects)
-        expect(result['data'].first['grades']).to match_array([
-          { 'grade' => 'Sahih', 'gradeBy' => 'Ahmad Muhammad Shakir' },
-          { 'grade' => 'Hasan', 'gradeBy' => 'Another Scholar' },
-          { 'grade' => 'صحيح', 'gradeBy' => 'العلماء' }
-        ])
+        # Should have combined grades from non-Arabic hadith objects only (no lang field)
+        grades = result['data'].first['grades']
+        expect(grades.size).to eq(2)
+        expect(grades).to include({ 'grade' => 'Sahih', 'gradeBy' => 'Ahmad Muhammad Shakir' })
+        expect(grades).to include({ 'grade' => 'Hasan', 'gradeBy' => 'Another Scholar' })
+        expect(grades.none? { |g| g.key?('lang') }).to eq(true)
 
         # Hadith array should be removed, grades array should be present
         expect(result['data'].first).not_to have_key('hadith')
@@ -362,16 +362,16 @@ RSpec.describe SunnahApi do
         )
       end
 
-      it 'flattens only Arabic language data with combined Arabic grades' do
+      it 'flattens only Arabic language data and filters grades to Arabic only (no lang field)' do
         result = instance.hadith_by_urns('305', language: :ar)
 
         # Should have only Arabic body and urn
-        expect(result['data'].first).to include('ar_body' => 'حدثنا عمر بن الخطاب بالعربية...')
+        expect(result['data'].first).to include('ar_body' => 'Ø­Ø¯Ø«Ù†Ø§ Ø¹Ù…Ø± Ø¨Ù† Ø§Ù„Ø®Ø·Ø§Ø¨ Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©...')
         expect(result['data'].first).to include('ar_urn' => 32)
 
-        # Should have only Arabic grades (as array of objects)
-        expect(result['data'].first['grades']).to eq([
-          { 'grade' => 'صحيح', 'gradeBy' => 'العلماء' }
+        # Grades should be filtered to Arabic only (no lang field)
+        expect(result['data'].first['grades']).to match_array([
+          { 'grade' => 'ØµØ­ÙŠØ­', 'gradeBy' => 'Ø§Ù„Ø¹Ù„Ù…Ø§Ø¡' }
         ])
 
         # Should not have English prefixes
@@ -440,18 +440,18 @@ RSpec.describe SunnahApi do
             'body' => 'English text',
             'urn' => 31,
             'grades' => [
-              { 'lang' => 'en', 'graded_by' => 'Scholar 1', 'grade' => 'Sahih' },
-              { 'lang' => 'en', 'graded_by' => 'Scholar 2', 'grade' => 'Hasan' }
+              { 'graded_by' => 'Scholar 1', 'grade' => 'Sahih' },
+              { 'graded_by' => 'Scholar 2', 'grade' => 'Hasan' }
             ]
           },
           {
             'lang' => 'ar',
             'chapterNumber' => '1',
-            'chapterTitle' => 'الوحي',
+            'chapterTitle' => 'Ø§Ù„ÙˆØ­ÙŠ',
             'body' => 'Arabic text',
             'urn' => 32,
             'grades' => [
-              { 'lang' => 'ar', 'graded_by' => 'عالم', 'grade' => 'صحيح' }
+              { 'graded_by' => 'Ø¹Ø§Ù„Ù…', 'grade' => 'ØµØ­ÙŠØ­' }
             ]
           }
         ]
@@ -474,11 +474,10 @@ RSpec.describe SunnahApi do
       expect(result).not_to have_key('ar_chapterNumber')
       expect(result).not_to have_key('ar_chapterTitle')
 
-      # Should have combined grades from all hadith objects (as array of objects)
+      # Should have combined grades from non-Arabic hadith objects only (no lang field)
       expect(result['grades']).to match_array([
         { 'grade' => 'Sahih', 'gradeBy' => 'Scholar 1' },
-        { 'grade' => 'Hasan', 'gradeBy' => 'Scholar 2' },
-        { 'grade' => 'صحيح', 'gradeBy' => 'عالم' }
+        { 'grade' => 'Hasan', 'gradeBy' => 'Scholar 2' }
       ])
     end
 
@@ -499,13 +498,32 @@ RSpec.describe SunnahApi do
 
       expect(result).to have_key('en_body')
       expect(result).to have_key('en_urn')
-      expect(result).to have_key('grades') # Combined grades without language prefix
+      expect(result).to have_key('grades')
+      # When only_language is 'en', it should include English grades only
       expect(result['grades']).to match_array([
         { 'grade' => 'Sahih', 'gradeBy' => 'Scholar 1' },
         { 'grade' => 'Hasan', 'gradeBy' => 'Scholar 2' }
-      ]) # Only English grades
+      ])
+      # No lang field in grades
+      expect(result['grades'].none? { |g| g.key?('lang') }).to eq(true)
       expect(result).not_to have_key('ar_body')
       expect(result).not_to have_key('ar_urn')
+    end
+
+    it 'filters grades to Arabic only when only_language is ar' do
+      result = instance.send(:flatten_hadith_item, item_with_hadith, only_language: 'ar')
+
+      expect(result).to have_key('ar_body')
+      expect(result).to have_key('ar_urn')
+      expect(result).to have_key('grades')
+      # When only_language is 'ar', it should include Arabic grades only
+      expect(result['grades']).to match_array([
+        { 'grade' => 'ØµØ­ÙŠØ­', 'gradeBy' => 'Ø¹Ø§Ù„Ù…' }
+      ])
+      # No lang field in grades
+      expect(result['grades'].none? { |g| g.key?('lang') }).to eq(true)
+      expect(result).not_to have_key('en_body')
+      expect(result).not_to have_key('en_urn')
     end
 
     it 'handles empty hadith array' do
@@ -538,7 +556,7 @@ RSpec.describe SunnahApi do
       expect(result).to include('en_urn' => 31)
     end
 
-    it 'handles grades without lang field gracefully' do
+    it 'handles grades without graded_by field' do
       item = {
         'urn' => 305,
         'hadith' => [
@@ -546,16 +564,16 @@ RSpec.describe SunnahApi do
             'lang' => 'en',
             'body' => 'text',
             'grades' => [
-              { 'graded_by' => 'Scholar', 'grade' => 'Sahih' } # no lang field
+              { 'grade' => 'Sahih' } # no graded_by field
             ]
           }
         ]
       }
       result = instance.send(:flatten_hadith_item, item)
 
-      # Grades without lang should still be included
+      # Grades without graded_by should still be included
       expect(result).to include('en_body' => 'text')
-      expect(result['grades']).to eq([{ 'grade' => 'Sahih', 'gradeBy' => 'Scholar' }])
+      expect(result['grades']).to eq([{ 'grade' => 'Sahih', 'gradeBy' => nil }])
     end
 
     it 'handles nil graded_by in grades' do
@@ -566,8 +584,8 @@ RSpec.describe SunnahApi do
             'lang' => 'en',
             'body' => 'text',
             'grades' => [
-              { 'lang' => 'en', 'graded_by' => nil, 'grade' => 'Sahih' },
-              { 'lang' => 'en', 'graded_by' => 'Scholar', 'grade' => 'Hasan' }
+              { 'graded_by' => nil, 'grade' => 'Sahih' },
+              { 'graded_by' => 'Scholar', 'grade' => 'Hasan' }
             ]
           }
         ]
@@ -605,9 +623,9 @@ RSpec.describe SunnahApi do
             'lang' => 'en',
             'body' => 'text',
             'grades' => [
-              { 'lang' => 'en', 'graded_by' => 'Scholar', 'grade' => 'Sahih' },
-              { 'lang' => 'en', 'graded_by' => 'Scholar', 'grade' => 'Sahih' }, # duplicate
-              { 'lang' => 'en', 'graded_by' => 'Another', 'grade' => 'Sahih' }
+              { 'graded_by' => 'Scholar', 'grade' => 'Sahih' },
+              { 'graded_by' => 'Scholar', 'grade' => 'Sahih' }, # duplicate
+              { 'graded_by' => 'Another', 'grade' => 'Sahih' }
             ]
           }
         ]
@@ -668,3 +686,4 @@ RSpec.describe SunnahApi do
     end
   end
 end
+

@@ -87,29 +87,38 @@ class SunnahApi
 
     flattened = item.dup
     hadiths = flattened.delete('hadith') || []
+    all_grades = []
 
     hadiths.each do |hadith|
       next unless hadith.is_a?(Hash)
 
       lang = hadith['lang'].to_s
-      next if only_language && lang != only_language
 
-      # Only extract specific fields: body, urn
-      flattened["#{lang}_body"] = hadith['body'] if hadith.key?('body')
-      flattened["#{lang}_urn"] = hadith['urn'] if hadith.key?('urn')
+      # For body/urn: extract all languages unless only_language is specified
+      if only_language.nil? || lang == only_language
+        flattened["#{lang}_body"] = hadith['body'] if hadith.key?('body')
+        flattened["#{lang}_urn"] = hadith['urn'] if hadith.key?('urn')
+      end
+
+      # For grades: same filter but exclude Arabic when only_language is nil
+      include_grade = (only_language.nil? && lang != 'ar') || (only_language && lang == only_language)
+
+      if include_grade
+        grades = hadith['grades'] || []
+        grades.each do |grade|
+          next unless grade.is_a?(Hash)
+          next unless grade['grade']
+
+          all_grades << {
+            'grade' => grade['grade'],
+            'gradeBy' => grade['graded_by']
+          }
+        end
+      end
     end
 
-    # Combine grades from all hadith objects into array of objects
-    all_grades = hadiths.flat_map { |h| (h['grades'] || []).compact }
-
-    # Filter grades by language if specified
-    filtered_grades = only_language ? all_grades.select { |g| g['lang'] == only_language } : all_grades
-
-    # Create array of unique grade objects (handle null graded_by)
-    grade_objects = filtered_grades.map { |g|
-      { 'grade' => g['grade'], 'gradeBy' => g['graded_by'] } if g['grade']
-    }.compact.uniq
-
+    # Deduplicate grades
+    grade_objects = all_grades.uniq
     flattened['grades'] = grade_objects unless grade_objects.empty?
 
     flattened
