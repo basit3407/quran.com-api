@@ -5,15 +5,14 @@ class V4::VerseFinder < ::VerseFinder
   def random_verse(filters, language_code, words: true, tafsirs: false, translations: false, audio: false)
     @results = Verse.unscope(:order).where(filters).order('RANDOM()').limit(3)
 
-    load_translations(translations) if translations.present?
     load_words(language_code) if words
     load_audio(audio) if audio
     load_tafsirs(tafsirs) if tafsirs.present?
 
     words_ordering = words ? ', words.position ASC, word_translations.priority ASC' : ''
-    translations_order = translations.present? ? ',translations.priority ASC' : ''
 
-    record = @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).sample
+    record = @results.order("verses.verse_index ASC #{words_ordering}".strip).sample
+    preload_translations([record].compact, translations) if translations.present?
     expand_n_ayah_tafsirs(record, tafsirs)
     record
   end
@@ -21,30 +20,28 @@ class V4::VerseFinder < ::VerseFinder
   def find_with_key(key, language_code, words: true, tafsirs: false, translations: false, audio: false)
     @results = Verse.where(verse_key: key).limit(1)
 
-    load_translations(translations) if translations.present?
     load_words(language_code) if words
     load_audio(audio) if audio
     load_tafsirs(tafsirs) if tafsirs.present?
 
     words_ordering = words ? ', words.position ASC, word_translations.priority ASC' : ''
-    translations_order = translations.present? ? ',translations.priority ASC' : ''
 
-    record = @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).first
+    record = @results.order("verses.verse_index ASC #{words_ordering}".strip).first
+    preload_translations([record].compact, translations) if translations.present?
     expand_n_ayah_tafsirs(record, tafsirs)
     record
   end
 
   def load_verses(filter, language_code, mushaf: nil, words: true, tafsirs: false, translations: false, audio: false)
     fetch_verses_range(filter, mushaf: mushaf)
-    load_translations(translations) if translations.present?
     load_words(language_code) if words
     load_audio(audio) if audio
     load_tafsirs(tafsirs) if tafsirs.present?
 
     words_ordering = words ? ', words.position ASC, word_translations.priority ASC' : ''
-    translations_order = translations.present? ? ',translations.priority ASC' : ''
 
-    records = @results.order("verses.verse_index ASC #{words_ordering} #{translations_order}".strip).to_a
+    records = @results.order("verses.verse_index ASC #{words_ordering}".strip).to_a
+    preload_translations(records, translations) if translations.present?
     expand_n_ayah_tafsirs(records, tafsirs)
     records
   end
@@ -267,10 +264,12 @@ class V4::VerseFinder < ::VerseFinder
     end
   end
 
-  def load_translations(translations)
-    @results = @results
-                 .where(translations: { resource_content_id: translations })
-                 .eager_load(:translations)
+  def preload_translations(verses, translations)
+    translation_ids = normalize_resource_ids(translations)
+    return if translation_ids.empty?
+
+    scope = Translation.where(resource_content_id: translation_ids).order(:priority)
+    ActiveRecord::Associations::Preloader.new(records: verses, associations: :translations, scope: scope).call
   end
 
   def load_tafsirs(tafsirs)
