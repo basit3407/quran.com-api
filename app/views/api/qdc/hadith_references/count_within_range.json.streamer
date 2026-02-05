@@ -1,0 +1,10 @@
+sorted_counts = @verse_counts.sort_by do |verse_key, _count|
+  chapter, ayah = verse_key.to_s.split(':', 2).map(&:to_i)
+  [chapter, ayah]
+end
+
+json.object! do
+  sorted_counts.each do |verse_key, count|
+    json.set! verse_key, count
+  end
+end
