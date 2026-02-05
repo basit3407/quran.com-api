@@ -96,7 +96,7 @@ class Qdc::VerseFinder < ::VerseFinder
   end
 
   def load_related_resources(language:, mushaf:, words:, tafsirs:, translations:, reciter:)
-    load_translations(translations) if translations.present?
+    translations_to_load = translations
     load_words(language, mushaf) if words.present?
     load_segments(reciter) if reciter.present?
     load_tafsirs(tafsirs) if tafsirs.present?
@@ -107,7 +107,6 @@ class Qdc::VerseFinder < ::VerseFinder
       order_clauses << "mushaf_words.position_in_verse ASC, word_translations.priority ASC"
     end
 
-    order_clauses << 'translations.priority ASC' if translations.present?
     order_query = order_clauses.join(',').strip
 
     records = if order_query.present?
@@ -117,6 +116,7 @@ class Qdc::VerseFinder < ::VerseFinder
               end
 
     records = records.to_a
+    preload_translations(records, translations_to_load) if translations_to_load.present?
     expand_n_ayah_tafsirs(records, tafsirs)
     records
   end
@@ -262,10 +262,12 @@ class Qdc::VerseFinder < ::VerseFinder
                  .eager_load(:audio_segment)
   end
 
-  def load_translations(translations)
-    @results = @results
-                 .where(translations: { resource_content_id: translations })
-                 .eager_load(:translations)
+  def preload_translations(verses, translations)
+    translation_ids = normalize_resource_ids(translations)
+    return if translation_ids.empty?
+
+    scope = Translation.where(resource_content_id: translation_ids).order(:priority)
+    ActiveRecord::Associations::Preloader.new(records: verses, associations: :translations, scope: scope).call
   end
 
   def load_tafsirs(tafsirs)
