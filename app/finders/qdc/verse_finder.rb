@@ -96,7 +96,6 @@ class Qdc::VerseFinder < ::VerseFinder
   end
 
   def load_related_resources(language:, mushaf:, words:, tafsirs:, translations:, reciter:)
-    translations_to_load = translations
     load_words(language, mushaf) if words.present?
     load_segments(reciter) if reciter.present?
     load_tafsirs(tafsirs) if tafsirs.present?
@@ -116,7 +115,7 @@ class Qdc::VerseFinder < ::VerseFinder
               end
 
     records = records.to_a
-    preload_translations(records, translations_to_load) if translations_to_load.present?
+    preload_translations(records, translations) if translations.present?
     expand_n_ayah_tafsirs(records, tafsirs)
     records
   end
