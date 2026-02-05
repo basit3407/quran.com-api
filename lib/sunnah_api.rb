@@ -7,6 +7,13 @@ class SunnahApi
   DEFAULT_LANGUAGE = 'en'.freeze
   API_KEY_ENV = 'SUNNAH_API_KEY'.freeze
   API_URL_ENV = 'SUNNAH_API_URL'.freeze
+  DEFAULT_COLLECTIONS_LIMIT = 100
+
+  def initialize
+    @collections_mutex = Mutex.new
+    @collections_cv = ConditionVariable.new
+    reset_collections_cache!
+  end
 
   def hadith_by_urns(urns, language: DEFAULT_LANGUAGE)
     raw_response = hadith_by_urns_raw(urns)
@@ -24,10 +31,116 @@ class SunnahApi
     send_request('hadiths/urns', urns: urn_list.join(','))
   end
 
+  def get_collection(name)
+    collection_name = name.to_s.strip
+    return nil if collection_name.empty?
+
+    ensure_collections_loaded_for!(collection_name)
+    @collections_mutex.synchronize { @collections_by_name[collection_name] }
+  end
+
+  def collections
+    ensure_collections_loaded_for!(nil)
+    @collections_mutex.synchronize { @collections_by_name.values }
+  end
+
   private
 
   def normalize_urns(urns)
     Array(urns).flatten.compact.map(&:to_s).map(&:strip).reject(&:empty?)
+  end
+
+  def ensure_collections_loaded_for!(collection_name)
+    @collections_mutex.synchronize do
+      return if @collections_status == :loaded
+      return if collection_name && @collections_by_name.key?(collection_name)
+
+      if @collections_status == :pending
+        while @collections_status == :pending
+          @collections_cv.wait(@collections_mutex)
+        end
+
+        return if @collections_status == :loaded
+        return if collection_name && @collections_by_name.key?(collection_name)
+      end
+
+      @collections_status = :pending
+    end
+
+    begin
+      fetch_all_collections_into_cache!
+      @collections_mutex.synchronize do
+        @collections_status = :loaded
+        @collections_last_error = nil
+        @collections_cv.broadcast
+      end
+    rescue StandardError => e
+      @collections_mutex.synchronize do
+        @collections_status = :idle
+        @collections_last_error = e
+        @collections_cv.broadcast
+      end
+    end
+  end
+
+  def fetch_all_collections_into_cache!
+    loop do
+      limit = nil
+      page = nil
+      @collections_mutex.synchronize do
+        limit = @collections_limit
+        page = @collections_next_page
+      end
+
+      break if page.nil?
+
+      response = fetch_collections_page_raw(limit: limit, page: page)
+      unless response.is_a?(Hash) && response['data'].is_a?(Array)
+        raise "Unexpected collections response for page=#{page}: #{response.inspect}"
+      end
+
+      @collections_mutex.synchronize do
+        response['data'].each do |item|
+          next unless item.is_a?(Hash)
+
+          item_name = item['name'].to_s
+          next if item_name.empty?
+
+          @collections_by_name[item_name] ||= item
+        end
+
+        next_page = normalize_page_number(response['next'])
+        @collections_next_page = next_page
+        @collections_total = response['total'] if response.key?('total')
+        @collections_last_successful_page = page
+      end
+    end
+  end
+
+  def fetch_collections_page_raw(limit:, page:)
+    capped_limit = [limit.to_i, 1].max
+    capped_limit = [capped_limit, DEFAULT_COLLECTIONS_LIMIT].min
+    page_number = [page.to_i, 1].max
+
+    send_request('collections', limit: capped_limit, page: page_number)
+  end
+
+
+  def normalize_page_number(value)
+    return nil if value.nil?
+
+    num = value.to_i
+    num.positive? ? num : nil
+  end
+
+  def reset_collections_cache!
+    @collections_status = :idle
+    @collections_last_error = nil
+    @collections_by_name = {}
+    @collections_total = nil
+    @collections_limit = DEFAULT_COLLECTIONS_LIMIT
+    @collections_next_page = 1
+    @collections_last_successful_page = 0
   end
 
   def send_request(path, params)

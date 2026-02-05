@@ -8,7 +8,7 @@ RSpec.describe SunnahApi do
   before do
     # Set required environment variables
     ENV['SUNNAH_API_KEY'] = 'test-api-key'
-    ENV['SUNNAH_API_URL'] = 'https://api.sunnah.com'
+    ENV['SUNNAH_API_URL'] = 'https://api.sunnah.com/v1'
   end
 
   after do
@@ -70,7 +70,7 @@ RSpec.describe SunnahApi do
 
       it 'accepts URNs as comma-separated string' do
         expect(Faraday).to receive(:get).with(
-          'https://api.sunnah.com/hadiths/urns',
+          'https://api.sunnah.com/v1/hadiths/urns',
           { urns: '305,306' },
           { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
         ).and_return(
@@ -82,7 +82,7 @@ RSpec.describe SunnahApi do
 
       it 'accepts URNs as array of strings' do
         expect(Faraday).to receive(:get).with(
-          'https://api.sunnah.com/hadiths/urns',
+          'https://api.sunnah.com/v1/hadiths/urns',
           { urns: '305,306' },
           { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
         ).and_return(
@@ -94,7 +94,7 @@ RSpec.describe SunnahApi do
 
       it 'accepts URNs as array of integers' do
         expect(Faraday).to receive(:get).with(
-          'https://api.sunnah.com/hadiths/urns',
+          'https://api.sunnah.com/v1/hadiths/urns',
           { urns: '305,306' },
           { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
         ).and_return(
@@ -106,7 +106,7 @@ RSpec.describe SunnahApi do
 
       it 'accepts single URN as string' do
         expect(Faraday).to receive(:get).with(
-          'https://api.sunnah.com/hadiths/urns',
+          'https://api.sunnah.com/v1/hadiths/urns',
           { urns: '305' },
           { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
         ).and_return(
@@ -118,7 +118,7 @@ RSpec.describe SunnahApi do
 
       it 'normalizes and trims whitespace from URNs' do
         expect(Faraday).to receive(:get).with(
-          'https://api.sunnah.com/hadiths/urns',
+          'https://api.sunnah.com/v1/hadiths/urns',
           { urns: '305,306' },
           { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
         ).and_return(
@@ -130,7 +130,7 @@ RSpec.describe SunnahApi do
 
       it 'filters out empty values' do
         expect(Faraday).to receive(:get).with(
-          'https://api.sunnah.com/hadiths/urns',
+          'https://api.sunnah.com/v1/hadiths/urns',
           { urns: '305,306' },
           { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
         ).and_return(
@@ -639,6 +639,105 @@ RSpec.describe SunnahApi do
     end
   end
 
+  describe '#get_collection' do
+    before do
+      instance.send(:reset_collections_cache!)
+    end
+
+    let(:page_1_response) do
+      {
+        'data' => [
+          {
+            'name' => 'bukhari',
+            'hasBooks' => true,
+            'hasChapters' => true,
+            'collection' => [{ 'lang' => 'en', 'title' => 'Sahih al-Bukhari', 'shortIntro' => '...' }],
+            'totalHadith' => 7563,
+            'totalAvailableHadith' => 7563
+          }
+        ],
+        'total' => 2,
+        'limit' => 100,
+        'previous' => nil,
+        'next' => 2
+      }
+    end
+
+    let(:page_2_response) do
+      {
+        'data' => [
+          {
+            'name' => 'muslim',
+            'hasBooks' => true,
+            'hasChapters' => true,
+            'collection' => [{ 'lang' => 'en', 'title' => 'Sahih Muslim', 'shortIntro' => '...' }],
+            'totalHadith' => 7500,
+            'totalAvailableHadith' => 7500
+          }
+        ],
+        'total' => 2,
+        'limit' => 100,
+        'previous' => 1,
+        'next' => nil
+      }
+    end
+
+    it 'fetches all pages and stores collections by name' do
+      expect(Faraday).to receive(:get).with(
+        'https://api.sunnah.com/v1/collections',
+        { limit: 100, page: 1 },
+        { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
+      ).and_return(double(status: 200, body: Oj.dump(page_1_response)))
+
+      expect(Faraday).to receive(:get).with(
+        'https://api.sunnah.com/v1/collections',
+        { limit: 100, page: 2 },
+        { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
+      ).and_return(double(status: 200, body: Oj.dump(page_2_response)))
+
+      result = instance.get_collection('bukhari')
+      expect(result).to include('name' => 'bukhari')
+
+      all = instance.collections
+      expect(all.map { |c| c['name'] }).to match_array(%w[bukhari muslim])
+    end
+
+    it 'uses the cache for subsequent calls' do
+      allow(Faraday).to receive(:get).and_return(
+        double(status: 200, body: Oj.dump(page_2_response.merge('next' => nil)))
+      )
+
+      first = instance.get_collection('muslim')
+      expect(first).to include('name' => 'muslim')
+
+      expect(Faraday).not_to receive(:get)
+      second = instance.get_collection('muslim')
+      expect(second).to include('name' => 'muslim')
+    end
+
+    it 'returns already-fetched collections even if later pages fail' do
+      expect(Faraday).to receive(:get).with(
+        'https://api.sunnah.com/v1/collections',
+        { limit: 100, page: 1 },
+        anything
+      ).and_return(double(status: 200, body: Oj.dump(page_1_response)))
+
+      expect(Faraday).to receive(:get).with(
+        'https://api.sunnah.com/v1/collections',
+        { limit: 100, page: 2 },
+        anything
+      ).and_return(double(status: 500, body: 'Internal Server Error'))
+
+      result = instance.get_collection('bukhari')
+      expect(result).to include('name' => 'bukhari')
+
+      # Does not refetch because bukhari is already present
+      expect(Faraday).not_to receive(:get)
+      again = instance.get_collection('bukhari')
+      expect(again).to include('name' => 'bukhari')
+    end
+  end
+
   describe 'environment variable requirements' do
     it 'raises ArgumentError when SUNNAH_API_KEY is not set' do
       ENV.delete('SUNNAH_API_KEY')
@@ -686,4 +785,3 @@ RSpec.describe SunnahApi do
     end
   end
 end
-
