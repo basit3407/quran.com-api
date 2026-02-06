@@ -264,6 +264,16 @@ RSpec.describe SunnahApi do
   end
 
   describe '#hadith_by_urns' do
+    let(:bukhari_collection) do
+      {
+        'name' => 'bukhari',
+        'collection' => [
+          { 'lang' => 'en', 'title' => 'Sahih al-Bukhari', 'shortIntro' => '...' },
+          { 'lang' => 'ar', 'title' => 'صحيح البخاري', 'shortIntro' => '...' }
+        ]
+      }
+    end
+
     let(:multi_language_response) do
       {
         'count' => 1,
@@ -308,6 +318,7 @@ RSpec.describe SunnahApi do
         allow(Faraday).to receive(:get).and_return(
           double(status: 200, body: Oj.dump(multi_language_response))
         )
+        allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
       end
 
       it 'flattens only body, urn and combines grades by default' do
@@ -343,6 +354,9 @@ RSpec.describe SunnahApi do
         # Hadith array should be removed, grades array should be present
         expect(result['data'].first).not_to have_key('hadith')
         expect(result['data'].first).to have_key('grades')
+
+        # Should have collection name
+        expect(result['data'].first).to include('name' => 'Sahih al-Bukhari')
       end
 
       it 'preserves other non-hadith fields' do
@@ -352,6 +366,7 @@ RSpec.describe SunnahApi do
         expect(result['data'].first['bookNumber']).to eq('1')
         expect(result['data'].first['chapterId']).to eq('1')
         expect(result['data'].first['hadithNumber']).to eq('1')
+        expect(result['data'].first['name']).to eq('Sahih al-Bukhari')
       end
     end
 
@@ -360,6 +375,7 @@ RSpec.describe SunnahApi do
         allow(Faraday).to receive(:get).and_return(
           double(status: 200, body: Oj.dump(multi_language_response))
         )
+        allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
       end
 
       it 'flattens only Arabic language data and filters grades to Arabic only (no lang field)' do
@@ -377,6 +393,9 @@ RSpec.describe SunnahApi do
         # Should not have English prefixes
         expect(result['data'].first).not_to have_key('en_body')
         expect(result['data'].first).not_to have_key('en_urn')
+
+        # Should have Arabic collection name
+        expect(result['data'].first).to include('name' => 'صحيح البخاري')
       end
 
       it 'handles string language parameter' do
@@ -384,6 +403,7 @@ RSpec.describe SunnahApi do
 
         expect(result['data'].first).to include('ar_body')
         expect(result['data'].first).not_to have_key('en_body')
+        expect(result['data'].first).to include('name' => 'صحيح البخاري')
       end
     end
 
@@ -735,6 +755,104 @@ RSpec.describe SunnahApi do
       expect(Faraday).not_to receive(:get)
       again = instance.get_collection('bukhari')
       expect(again).to include('name' => 'bukhari')
+    end
+  end
+
+  describe 'add_collection_name_to_hadith (private method)' do
+    let(:bukhari_collection) do
+      {
+        'name' => 'bukhari',
+        'collection' => [
+          { 'lang' => 'en', 'title' => 'Sahih al-Bukhari', 'shortIntro' => '...' },
+          { 'lang' => 'ar', 'title' => 'صحيح البخاري', 'shortIntro' => '...' }
+        ]
+      }
+    end
+
+    let(:muslim_collection) do
+      {
+        'name' => 'muslim',
+        'collection' => [
+          { 'lang' => 'en', 'title' => 'Sahih Muslim', 'shortIntro' => '...' },
+          { 'lang' => 'ar', 'title' => 'صحيح مسلم', 'shortIntro' => '...' }
+        ]
+      }
+    end
+
+    before do
+      allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
+      allow(instance).to receive(:get_collection).with('muslim').and_return(muslim_collection)
+    end
+
+    it 'adds English collection name when language is en' do
+      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
+      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
+
+      expect(result['name']).to eq('Sahih al-Bukhari')
+      expect(result['collection']).to eq('bukhari')
+      expect(result['urn']).to eq(123)
+    end
+
+    it 'adds Arabic collection name when language is ar' do
+      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
+      result = instance.send(:add_collection_name_to_hadith, hadith, 'ar')
+
+      expect(result['name']).to eq('صحيح البخاري')
+      expect(result['collection']).to eq('bukhari')
+      expect(result['urn']).to eq(123)
+    end
+
+    it 'returns hadith unchanged if collection is missing' do
+      hadith = { 'urn' => 123 }
+      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
+
+      expect(result).to eq({ 'urn' => 123 })
+      expect(result).not_to have_key('name')
+    end
+
+    it 'returns hadith unchanged if collection is not found' do
+      allow(instance).to receive(:get_collection).with('unknown').and_return(nil)
+
+      hadith = { 'collection' => 'unknown', 'urn' => 123 }
+      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
+
+      expect(result).to eq({ 'collection' => 'unknown', 'urn' => 123 })
+      expect(result).not_to have_key('name')
+    end
+
+    it 'returns hadith unchanged if collection data is missing title for language' do
+      collection_without_title = {
+        'name' => 'bukhari',
+        'collection' => [
+          { 'lang' => 'fr', 'title' => 'Sahih al-Bukhari (French)' }
+        ]
+      }
+      allow(instance).to receive(:get_collection).with('bukhari').and_return(collection_without_title)
+
+      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
+      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
+
+      expect(result).to eq({ 'collection' => 'bukhari', 'urn' => 123 })
+      expect(result).not_to have_key('name')
+    end
+
+    it 'returns hadith unchanged if hadith is not a Hash' do
+      result = instance.send(:add_collection_name_to_hadith, 'string', 'en')
+      expect(result).to eq('string')
+    end
+
+    it 'handles empty collection array' do
+      empty_collection = {
+        'name' => 'bukhari',
+        'collection' => []
+      }
+      allow(instance).to receive(:get_collection).with('bukhari').and_return(empty_collection)
+
+      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
+      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
+
+      expect(result).to eq({ 'collection' => 'bukhari', 'urn' => 123 })
+      expect(result).not_to have_key('name')
     end
   end
 

@@ -21,7 +21,14 @@ class SunnahApi
     return raw_response unless raw_response['data'].is_a?(Array)
 
     only_language = language.to_s.downcase == 'ar' ? 'ar' : nil
-    raw_response.merge('data' => raw_response['data'].map { |item| flatten_hadith_item(item, only_language: only_language) })
+    language_code = language.to_s.downcase == 'ar' ? 'ar' : 'en'
+
+    data = raw_response['data'].map do |item|
+      flattened = flatten_hadith_item(item, only_language: only_language)
+      add_collection_name_to_hadith(flattened, language_code)
+    end
+
+    raw_response.merge('data' => data)
   end
 
   def hadith_by_urns_raw(urns)
@@ -193,6 +200,24 @@ class SunnahApi
     raise ArgumentError, "#{API_URL_ENV} is required" if raw.empty?
 
     raw.sub(%r{/*\z}, '')
+  end
+
+  def add_collection_name_to_hadith(hadith, language)
+    return hadith unless hadith.is_a?(Hash)
+
+    collection_name = hadith['collection']
+    return hadith unless collection_name
+
+    collection = get_collection(collection_name)
+    return hadith unless collection
+
+    # Find the appropriate title based on language
+    collection_info = collection['collection']&.find { |c| c['lang'] == language }
+    title = collection_info&.dig('title')
+
+    return hadith unless title
+
+    hadith.merge('name' => title)
   end
 
   def flatten_hadith_item(item, only_language: nil)

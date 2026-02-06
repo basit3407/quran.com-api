@@ -219,10 +219,10 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(sunnah_api).to receive(:hadith_by_urns)
         .with([201, 202, 203, 204], language: 'en')
         .and_return('data' => [
-          { 'urn' => 201 },
-          { 'urn' => 202 },
-          { 'urn' => 203 },
-          { 'urn' => 204 }
+          { 'urn' => 201, 'collection' => 'bukhari', 'name' => 'Sahih al-Bukhari' },
+          { 'urn' => 202, 'collection' => 'bukhari', 'name' => 'Sahih al-Bukhari' },
+          { 'urn' => 203, 'collection' => 'muslim', 'name' => 'Sahih Muslim' },
+          { 'urn' => 204, 'collection' => 'nasai', 'name' => 'Sunan an-Nasa\'i' }
         ])
 
       get "/api/qdc/hadith_references/by_ayah/#{ayah_key}/hadiths"
@@ -232,6 +232,8 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
 
       expect(json['hadiths'].size).to eq(4)
       expect(json['hadiths'].first['urn']).to eq(201)
+      expect(json['hadiths'].first['name']).to eq('Sahih al-Bukhari')
+      expect(json['hadiths'].first['collection']).to eq('bukhari')
       expect(json['page']).to eq(1)
       expect(json['limit']).to eq(4)
       expect(json['has_more']).to eq(true)
@@ -251,8 +253,8 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(sunnah_api).to receive(:hadith_by_urns)
         .with([103, 104], language: 'ar')
         .and_return('data' => [
-          { 'urn' => 103 },
-          { 'urn' => 104 }
+          { 'urn' => 103, 'collection' => 'bukhari', 'name' => 'صحيح البخاري' },
+          { 'urn' => 104, 'collection' => 'muslim', 'name' => 'صحيح مسلم' }
         ])
 
       get "/api/qdc/hadith_references/by_ayah/#{ayah_key}/hadiths", params: { page: 2, limit: 2, language: 'ar' }
@@ -262,6 +264,8 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
 
       expect(json['hadiths'].size).to eq(2)
       expect(json['hadiths'].first['urn']).to eq(103)
+      expect(json['hadiths'].first['name']).to eq('صحيح البخاري')
+      expect(json['hadiths'].first['collection']).to eq('bukhari')
       expect(json['page']).to eq(2)
       expect(json['limit']).to eq(2)
       expect(json['has_more']).to eq(true)
