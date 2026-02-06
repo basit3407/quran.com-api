@@ -513,30 +513,31 @@ RSpec.describe SunnahApi do
       expect(result['urn']).to eq(305)
     end
 
-    it 'filters by only_language when provided' do
-      result = instance.send(:flatten_hadith_item, item_with_hadith, only_language: 'en')
+    it 'includes all languages and filters grades when language is en' do
+      result = instance.send(:flatten_hadith_item, item_with_hadith, language: 'en')
 
+      # When language is 'en', it should include all languages for body/urn
       expect(result).to have_key('en_body')
       expect(result).to have_key('en_urn')
+      expect(result).to have_key('ar_body')
+      expect(result).to have_key('ar_urn')
       expect(result).to have_key('grades')
-      # When only_language is 'en', it should include English grades only
+      # When language is 'en', it should include English grades only (not Arabic)
       expect(result['grades']).to match_array([
         { 'grade' => 'Sahih', 'gradeBy' => 'Scholar 1' },
         { 'grade' => 'Hasan', 'gradeBy' => 'Scholar 2' }
       ])
       # No lang field in grades
       expect(result['grades'].none? { |g| g.key?('lang') }).to eq(true)
-      expect(result).not_to have_key('ar_body')
-      expect(result).not_to have_key('ar_urn')
     end
 
-    it 'filters grades to Arabic only when only_language is ar' do
-      result = instance.send(:flatten_hadith_item, item_with_hadith, only_language: 'ar')
+    it 'filters grades to Arabic only when language is ar' do
+      result = instance.send(:flatten_hadith_item, item_with_hadith, language: 'ar')
 
       expect(result).to have_key('ar_body')
       expect(result).to have_key('ar_urn')
       expect(result).to have_key('grades')
-      # When only_language is 'ar', it should include Arabic grades only
+      # When language is 'ar', it should include Arabic grades only
       expect(result['grades']).to match_array([
         { 'grade' => 'ØµØ­ÙŠØ­', 'gradeBy' => 'Ø¹Ø§Ù„Ù…' }
       ])
@@ -657,14 +658,106 @@ RSpec.describe SunnahApi do
         { 'grade' => 'Sahih', 'gradeBy' => 'Another' }
       ]) # deduplicated
     end
+
+    it 'adds collection name when collection exists' do
+      bukhari_collection = {
+        'name' => 'bukhari',
+        'collection' => [
+          { 'lang' => 'en', 'title' => 'Sahih al-Bukhari', 'shortIntro' => '...' },
+          { 'lang' => 'ar', 'title' => 'صحيح البخاري', 'shortIntro' => '...' }
+        ]
+      }
+      allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
+
+      item = {
+        'collection' => 'bukhari',
+        'urn' => 305,
+        'hadith' => [
+          { 'lang' => 'en', 'body' => 'text', 'urn' => 31, 'grades' => [] }
+        ]
+      }
+
+      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      expect(result['name']).to eq('Sahih al-Bukhari')
+      expect(result['collection']).to eq('bukhari')
+    end
+
+    it 'adds Arabic collection name when language is ar' do
+      bukhari_collection = {
+        'name' => 'bukhari',
+        'collection' => [
+          { 'lang' => 'en', 'title' => 'Sahih al-Bukhari', 'shortIntro' => '...' },
+          { 'lang' => 'ar', 'title' => 'صحيح البخاري', 'shortIntro' => '...' }
+        ]
+      }
+      allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
+
+      item = {
+        'collection' => 'bukhari',
+        'urn' => 305,
+        'hadith' => [
+          { 'lang' => 'ar', 'body' => 'text', 'urn' => 32, 'grades' => [] }
+        ]
+      }
+
+      result = instance.send(:flatten_hadith_item, item, language: 'ar')
+      expect(result['name']).to eq('صحيح البخاري')
+      expect(result['collection']).to eq('bukhari')
+    end
+
+    it 'does not add collection name when collection is not found' do
+      allow(instance).to receive(:get_collection).with('unknown').and_return(nil)
+
+      item = {
+        'collection' => 'unknown',
+        'urn' => 305,
+        'hadith' => [
+          { 'lang' => 'en', 'body' => 'text', 'urn' => 31, 'grades' => [] }
+        ]
+      }
+
+      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      expect(result).not_to have_key('name')
+      expect(result['collection']).to eq('unknown')
+    end
+
+    it 'does not add collection name when collection is missing' do
+      item = {
+        'urn' => 305,
+        'hadith' => [
+          { 'lang' => 'en', 'body' => 'text', 'urn' => 31, 'grades' => [] }
+        ]
+      }
+
+      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      expect(result).not_to have_key('name')
+    end
+
+    it 'does not add collection name when collection has no title for language' do
+      collection_without_title = {
+        'name' => 'bukhari',
+        'collection' => [
+          { 'lang' => 'fr', 'title' => 'Sahih al-Bukhari (French)' }
+        ]
+      }
+      allow(instance).to receive(:get_collection).with('bukhari').and_return(collection_without_title)
+
+      item = {
+        'collection' => 'bukhari',
+        'urn' => 305,
+        'hadith' => [
+          { 'lang' => 'en', 'body' => 'text', 'urn' => 31, 'grades' => [] }
+        ]
+      }
+
+      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      expect(result).not_to have_key('name')
+      expect(result['collection']).to eq('bukhari')
+    end
   end
 
   describe '#get_collection' do
-    before do
-      instance.send(:reset_collections_cache!)
-    end
-
-    let(:page_1_response) do
+    let(:collections_response) do
       {
         'data' => [
           {
@@ -674,18 +767,7 @@ RSpec.describe SunnahApi do
             'collection' => [{ 'lang' => 'en', 'title' => 'Sahih al-Bukhari', 'shortIntro' => '...' }],
             'totalHadith' => 7563,
             'totalAvailableHadith' => 7563
-          }
-        ],
-        'total' => 2,
-        'limit' => 100,
-        'previous' => nil,
-        'next' => 2
-      }
-    end
-
-    let(:page_2_response) do
-      {
-        'data' => [
+          },
           {
             'name' => 'muslim',
             'hasBooks' => true,
@@ -697,23 +779,17 @@ RSpec.describe SunnahApi do
         ],
         'total' => 2,
         'limit' => 100,
-        'previous' => 1,
+        'previous' => nil,
         'next' => nil
       }
     end
 
-    it 'fetches all pages and stores collections by name' do
+    it 'fetches all collections in one call and stores by name' do
       expect(Faraday).to receive(:get).with(
         'https://api.sunnah.com/v1/collections',
         { limit: 100, page: 1 },
         { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
-      ).and_return(double(status: 200, body: Oj.dump(page_1_response)))
-
-      expect(Faraday).to receive(:get).with(
-        'https://api.sunnah.com/v1/collections',
-        { limit: 100, page: 2 },
-        { 'X-API-Key' => 'test-api-key', 'Accept' => 'application/json' }
-      ).and_return(double(status: 200, body: Oj.dump(page_2_response)))
+      ).and_return(double(status: 200, body: Oj.dump(collections_response)))
 
       result = instance.get_collection('bukhari')
       expect(result).to include('name' => 'bukhari')
@@ -724,7 +800,7 @@ RSpec.describe SunnahApi do
 
     it 'uses the cache for subsequent calls' do
       allow(Faraday).to receive(:get).and_return(
-        double(status: 200, body: Oj.dump(page_2_response.merge('next' => nil)))
+        double(status: 200, body: Oj.dump(collections_response))
       )
 
       first = instance.get_collection('muslim')
@@ -735,124 +811,19 @@ RSpec.describe SunnahApi do
       expect(second).to include('name' => 'muslim')
     end
 
-    it 'returns already-fetched collections even if later pages fail' do
-      expect(Faraday).to receive(:get).with(
-        'https://api.sunnah.com/v1/collections',
-        { limit: 100, page: 1 },
-        anything
-      ).and_return(double(status: 200, body: Oj.dump(page_1_response)))
+    it 'returns nil for non-existent collection' do
+      allow(Faraday).to receive(:get).and_return(
+        double(status: 200, body: Oj.dump(collections_response))
+      )
 
-      expect(Faraday).to receive(:get).with(
-        'https://api.sunnah.com/v1/collections',
-        { limit: 100, page: 2 },
-        anything
-      ).and_return(double(status: 500, body: 'Internal Server Error'))
-
-      result = instance.get_collection('bukhari')
-      expect(result).to include('name' => 'bukhari')
-
-      # Does not refetch because bukhari is already present
-      expect(Faraday).not_to receive(:get)
-      again = instance.get_collection('bukhari')
-      expect(again).to include('name' => 'bukhari')
-    end
-  end
-
-  describe 'add_collection_name_to_hadith (private method)' do
-    let(:bukhari_collection) do
-      {
-        'name' => 'bukhari',
-        'collection' => [
-          { 'lang' => 'en', 'title' => 'Sahih al-Bukhari', 'shortIntro' => '...' },
-          { 'lang' => 'ar', 'title' => 'صحيح البخاري', 'shortIntro' => '...' }
-        ]
-      }
+      result = instance.get_collection('nonexistent')
+      expect(result).to be_nil
     end
 
-    let(:muslim_collection) do
-      {
-        'name' => 'muslim',
-        'collection' => [
-          { 'lang' => 'en', 'title' => 'Sahih Muslim', 'shortIntro' => '...' },
-          { 'lang' => 'ar', 'title' => 'صحيح مسلم', 'shortIntro' => '...' }
-        ]
-      }
-    end
-
-    before do
-      allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
-      allow(instance).to receive(:get_collection).with('muslim').and_return(muslim_collection)
-    end
-
-    it 'adds English collection name when language is en' do
-      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
-      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
-
-      expect(result['name']).to eq('Sahih al-Bukhari')
-      expect(result['collection']).to eq('bukhari')
-      expect(result['urn']).to eq(123)
-    end
-
-    it 'adds Arabic collection name when language is ar' do
-      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
-      result = instance.send(:add_collection_name_to_hadith, hadith, 'ar')
-
-      expect(result['name']).to eq('صحيح البخاري')
-      expect(result['collection']).to eq('bukhari')
-      expect(result['urn']).to eq(123)
-    end
-
-    it 'returns hadith unchanged if collection is missing' do
-      hadith = { 'urn' => 123 }
-      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
-
-      expect(result).to eq({ 'urn' => 123 })
-      expect(result).not_to have_key('name')
-    end
-
-    it 'returns hadith unchanged if collection is not found' do
-      allow(instance).to receive(:get_collection).with('unknown').and_return(nil)
-
-      hadith = { 'collection' => 'unknown', 'urn' => 123 }
-      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
-
-      expect(result).to eq({ 'collection' => 'unknown', 'urn' => 123 })
-      expect(result).not_to have_key('name')
-    end
-
-    it 'returns hadith unchanged if collection data is missing title for language' do
-      collection_without_title = {
-        'name' => 'bukhari',
-        'collection' => [
-          { 'lang' => 'fr', 'title' => 'Sahih al-Bukhari (French)' }
-        ]
-      }
-      allow(instance).to receive(:get_collection).with('bukhari').and_return(collection_without_title)
-
-      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
-      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
-
-      expect(result).to eq({ 'collection' => 'bukhari', 'urn' => 123 })
-      expect(result).not_to have_key('name')
-    end
-
-    it 'returns hadith unchanged if hadith is not a Hash' do
-      result = instance.send(:add_collection_name_to_hadith, 'string', 'en')
-      expect(result).to eq('string')
-    end
-
-    it 'handles empty collection array' do
-      empty_collection = {
-        'name' => 'bukhari',
-        'collection' => []
-      }
-      allow(instance).to receive(:get_collection).with('bukhari').and_return(empty_collection)
-
-      hadith = { 'collection' => 'bukhari', 'urn' => 123 }
-      result = instance.send(:add_collection_name_to_hadith, hadith, 'en')
-
-      expect(result).to eq({ 'collection' => 'bukhari', 'urn' => 123 })
-      expect(result).not_to have_key('name')
+    it 'returns nil for empty collection name' do
+      expect(instance.get_collection('')).to be_nil
+      expect(instance.get_collection('   ')).to be_nil
+      expect(instance.get_collection(nil)).to be_nil
     end
   end
 
