@@ -78,8 +78,7 @@ module Api::Qdc
       @has_more = references.length > @limit
       @references = references.first(@limit)
 
-      requested_language = params[:language].to_s.downcase
-      use_arabic = requested_language == 'ar'
+      use_arabic = @language.iso_code == 'ar'
       urns = @references.map { |reference| use_arabic ? reference.arabic_urn : reference.english_urn }.compact
 
       if urns.empty?

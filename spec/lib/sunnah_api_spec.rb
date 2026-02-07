@@ -14,6 +14,8 @@ RSpec.describe SunnahApi do
   after do
     ENV.delete('SUNNAH_API_KEY')
     ENV.delete('SUNNAH_API_URL')
+    # Reset singleton cache if method exists
+    instance.instance_variable_set(:@collections, nil) if instance.instance_variable_defined?(:@collections)
   end
 
   describe '#hadith_by_urns_raw' do

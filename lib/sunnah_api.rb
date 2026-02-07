@@ -1,4 +1,5 @@
 require 'faraday'
+require 'oj'
 require 'singleton'
 
 class SunnahApi
