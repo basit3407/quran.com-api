@@ -321,7 +321,7 @@ RSpec.describe SunnahApi do
         allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
       end
 
-      it 'flattens only body, urn and combines grades by default' do
+      it 'preserves the original hadith structure and adds collection name' do
         result = instance.hadith_by_urns('305')
 
         expect(result['data'].first).to include(
@@ -332,28 +332,32 @@ RSpec.describe SunnahApi do
           'urn' => 305
         )
 
-        # Should only have body and urn from hadith, not chapterNumber or chapterTitle
-        expect(result['data'].first).to include('en_body' => 'Narrated Umar bin Al-Khattab in English...')
-        expect(result['data'].first).to include('en_urn' => 31)
-        expect(result['data'].first).to include('ar_body' => 'Ø­Ø¯Ø«Ù†Ø§ Ø¹Ù…Ø± Ø¨Ù† Ø§Ù„Ø®Ø·Ø§Ø¨ Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©...')
-        expect(result['data'].first).to include('ar_urn' => 32)
+        # Should have the original hadith array intact
+        expect(result['data'].first).to have_key('hadith')
+        expect(result['data'].first['hadith']).to be_an(Array)
+        expect(result['data'].first['hadith'].size).to eq(2)
 
-        # Should NOT have chapterNumber or chapterTitle
-        expect(result['data'].first).not_to have_key('en_chapterNumber')
-        expect(result['data'].first).not_to have_key('en_chapterTitle')
-        expect(result['data'].first).not_to have_key('ar_chapterNumber')
-        expect(result['data'].first).not_to have_key('ar_chapterTitle')
+        # Should have the hadith objects with original structure
+        english_hadith = result['data'].first['hadith'].find { |h| h['lang'] == 'en' }
+        expect(english_hadith).to include(
+          'lang' => 'en',
+          'chapterNumber' => '1',
+          'chapterTitle' => 'Revelation',
+          'body' => 'Narrated Umar bin Al-Khattab in English...',
+          'urn' => 31
+        )
+        expect(english_hadith['grades']).to eq([
+          { 'graded_by' => 'Ahmad Muhammad Shakir', 'grade' => 'Sahih' },
+          { 'graded_by' => 'Another Scholar', 'grade' => 'Hasan' }
+        ])
 
-        # Should have combined grades from non-Arabic hadith objects only (no lang field)
-        grades = result['data'].first['grades']
-        expect(grades.size).to eq(2)
-        expect(grades).to include({ 'grade' => 'Sahih', 'gradeBy' => 'Ahmad Muhammad Shakir' })
-        expect(grades).to include({ 'grade' => 'Hasan', 'gradeBy' => 'Another Scholar' })
-        expect(grades.none? { |g| g.key?('lang') }).to eq(true)
-
-        # Hadith array should be removed, grades array should be present
-        expect(result['data'].first).not_to have_key('hadith')
-        expect(result['data'].first).to have_key('grades')
+        arabic_hadith = result['data'].first['hadith'].find { |h| h['lang'] == 'ar' }
+        expect(arabic_hadith).to include(
+          'lang' => 'ar',
+          'chapterNumber' => '1',
+          'body' => 'Ø­Ø¯Ø«Ù†Ø§ Ø¹Ù…Ø± Ø¨Ù† Ø§Ù„Ø®Ø·Ø§Ø¨ Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©...',
+          'urn' => 32
+        )
 
         # Should have collection name
         expect(result['data'].first).to include('name' => 'Sahih al-Bukhari')
@@ -378,21 +382,13 @@ RSpec.describe SunnahApi do
         allow(instance).to receive(:get_collection).with('bukhari').and_return(bukhari_collection)
       end
 
-      it 'flattens only Arabic language data and filters grades to Arabic only (no lang field)' do
+      it 'preserves the original hadith structure and adds Arabic collection name' do
         result = instance.hadith_by_urns('305', language: :ar)
 
-        # Should have only Arabic body and urn
-        expect(result['data'].first).to include('ar_body' => 'Ø­Ø¯Ø«Ù†Ø§ Ø¹Ù…Ø± Ø¨Ù† Ø§Ù„Ø®Ø·Ø§Ø¨ Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©...')
-        expect(result['data'].first).to include('ar_urn' => 32)
-
-        # Grades should be filtered to Arabic only (no lang field)
-        expect(result['data'].first['grades']).to match_array([
-          { 'grade' => 'ØµØ­ÙŠØ­', 'gradeBy' => 'Ø§Ù„Ø¹Ù„Ù…Ø§Ø¡' }
-        ])
-
-        # Should not have English prefixes
-        expect(result['data'].first).not_to have_key('en_body')
-        expect(result['data'].first).not_to have_key('en_urn')
+        # Should have the original hadith array intact
+        expect(result['data'].first).to have_key('hadith')
+        expect(result['data'].first['hadith']).to be_an(Array)
+        expect(result['data'].first['hadith'].size).to eq(2)
 
         # Should have Arabic collection name
         expect(result['data'].first).to include('name' => 'صحيح البخاري')
@@ -401,8 +397,7 @@ RSpec.describe SunnahApi do
       it 'handles string language parameter' do
         result = instance.hadith_by_urns('305', language: 'ar')
 
-        expect(result['data'].first).to include('ar_body')
-        expect(result['data'].first).not_to have_key('en_body')
+        expect(result['data'].first).to have_key('hadith')
         expect(result['data'].first).to include('name' => 'صحيح البخاري')
       end
     end
@@ -447,7 +442,7 @@ RSpec.describe SunnahApi do
     end
   end
 
-  describe 'flatten_hadith_item (private method)' do
+  describe 'add_collection_name (private method)' do
     let(:item_with_hadith) do
       {
         'collection' => 'bukhari',
@@ -478,185 +473,36 @@ RSpec.describe SunnahApi do
       }
     end
 
-    it 'flattens only body, urn and combines grades by language' do
+    it 'preserves the original item structure and adds collection name' do
       # Use send to call private method for testing
-      result = instance.send(:flatten_hadith_item, item_with_hadith)
+      result = instance.send(:add_collection_name, item_with_hadith)
 
-      # Should only have body and urn
-      expect(result).to include('en_body' => 'English text')
-      expect(result).to include('en_urn' => 31)
-      expect(result).to include('ar_body' => 'Arabic text')
-      expect(result).to include('ar_urn' => 32)
-
-      # Should NOT have chapterNumber or chapterTitle
-      expect(result).not_to have_key('en_chapterNumber')
-      expect(result).not_to have_key('en_chapterTitle')
-      expect(result).not_to have_key('ar_chapterNumber')
-      expect(result).not_to have_key('ar_chapterTitle')
-
-      # Should have combined grades from non-Arabic hadith objects only (no lang field)
-      expect(result['grades']).to match_array([
-        { 'grade' => 'Sahih', 'gradeBy' => 'Scholar 1' },
-        { 'grade' => 'Hasan', 'gradeBy' => 'Scholar 2' }
-      ])
-    end
-
-    it 'removes the hadith array after flattening and keeps grades array' do
-      result = instance.send(:flatten_hadith_item, item_with_hadith)
-      expect(result).not_to have_key('hadith')
-      expect(result).to have_key('grades') # grades should be present as new format
-    end
-
-    it 'preserves other keys' do
-      result = instance.send(:flatten_hadith_item, item_with_hadith)
+      # Should preserve all original keys
       expect(result['collection']).to eq('bukhari')
       expect(result['urn']).to eq(305)
-    end
+      expect(result).to have_key('hadith')
 
-    it 'includes all languages and filters grades when language is en' do
-      result = instance.send(:flatten_hadith_item, item_with_hadith, language: 'en')
+      # Should have the hadith array intact
+      expect(result['hadith']).to be_an(Array)
+      expect(result['hadith'].size).to eq(2)
 
-      # When language is 'en', it should include all languages for body/urn
-      expect(result).to have_key('en_body')
-      expect(result).to have_key('en_urn')
-      expect(result).to have_key('ar_body')
-      expect(result).to have_key('ar_urn')
-      expect(result).to have_key('grades')
-      # When language is 'en', it should include English grades only (not Arabic)
-      expect(result['grades']).to match_array([
-        { 'grade' => 'Sahih', 'gradeBy' => 'Scholar 1' },
-        { 'grade' => 'Hasan', 'gradeBy' => 'Scholar 2' }
+      # Should preserve hadith structure
+      expect(result['hadith'].first).to include(
+        'lang' => 'en',
+        'chapterNumber' => '1',
+        'chapterTitle' => 'Revelation',
+        'body' => 'English text',
+        'urn' => 31
+      )
+      expect(result['hadith'].first['grades']).to eq([
+        { 'graded_by' => 'Scholar 1', 'grade' => 'Sahih' },
+        { 'graded_by' => 'Scholar 2', 'grade' => 'Hasan' }
       ])
-      # No lang field in grades
-      expect(result['grades'].none? { |g| g.key?('lang') }).to eq(true)
-    end
-
-    it 'filters grades to Arabic only when language is ar' do
-      result = instance.send(:flatten_hadith_item, item_with_hadith, language: 'ar')
-
-      expect(result).to have_key('ar_body')
-      expect(result).to have_key('ar_urn')
-      expect(result).to have_key('grades')
-      # When language is 'ar', it should include Arabic grades only
-      expect(result['grades']).to match_array([
-        { 'grade' => 'ØµØ­ÙŠØ­', 'gradeBy' => 'Ø¹Ø§Ù„Ù…' }
-      ])
-      # No lang field in grades
-      expect(result['grades'].none? { |g| g.key?('lang') }).to eq(true)
-      expect(result).not_to have_key('en_body')
-      expect(result).not_to have_key('en_urn')
-    end
-
-    it 'handles empty hadith array' do
-      item = { 'urn' => 305, 'hadith' => [] }
-      result = instance.send(:flatten_hadith_item, item)
-
-      expect(result).to eq('urn' => 305)
-    end
-
-    it 'handles nil hadith' do
-      item = { 'urn' => 305, 'hadith' => nil }
-      result = instance.send(:flatten_hadith_item, item)
-
-      expect(result).to eq('urn' => 305)
     end
 
     it 'handles non-Hash item' do
-      result = instance.send(:flatten_hadith_item, 'string')
+      result = instance.send(:add_collection_name, 'string')
       expect(result).to eq('string')
-    end
-
-    it 'skips hadith entries that are not Hash' do
-      item = {
-        'urn' => 305,
-        'hadith' => ['not a hash', { 'lang' => 'en', 'body' => 'valid', 'urn' => 31, 'grades' => [] }]
-      }
-      result = instance.send(:flatten_hadith_item, item)
-
-      expect(result).to include('en_body' => 'valid')
-      expect(result).to include('en_urn' => 31)
-    end
-
-    it 'handles grades without graded_by field' do
-      item = {
-        'urn' => 305,
-        'hadith' => [
-          {
-            'lang' => 'en',
-            'body' => 'text',
-            'grades' => [
-              { 'grade' => 'Sahih' } # no graded_by field
-            ]
-          }
-        ]
-      }
-      result = instance.send(:flatten_hadith_item, item)
-
-      # Grades without graded_by should still be included
-      expect(result).to include('en_body' => 'text')
-      expect(result['grades']).to eq([{ 'grade' => 'Sahih', 'gradeBy' => nil }])
-    end
-
-    it 'handles nil graded_by in grades' do
-      item = {
-        'urn' => 305,
-        'hadith' => [
-          {
-            'lang' => 'en',
-            'body' => 'text',
-            'grades' => [
-              { 'graded_by' => nil, 'grade' => 'Sahih' },
-              { 'graded_by' => 'Scholar', 'grade' => 'Hasan' }
-            ]
-          }
-        ]
-      }
-      result = instance.send(:flatten_hadith_item, item)
-
-      expect(result['grades']).to match_array([
-        { 'grade' => 'Sahih', 'gradeBy' => nil },
-        { 'grade' => 'Hasan', 'gradeBy' => 'Scholar' }
-      ])
-    end
-
-    it 'handles nil grades array' do
-      item = {
-        'urn' => 305,
-        'hadith' => [
-          {
-            'lang' => 'en',
-            'body' => 'text',
-            'grades' => nil # grades array is nil
-          }
-        ]
-      }
-      result = instance.send(:flatten_hadith_item, item)
-
-      expect(result).to include('en_body' => 'text')
-      expect(result).not_to have_key('grades') # No grades if all are nil
-    end
-
-    it 'deduplicates grade objects' do
-      item = {
-        'urn' => 305,
-        'hadith' => [
-          {
-            'lang' => 'en',
-            'body' => 'text',
-            'grades' => [
-              { 'graded_by' => 'Scholar', 'grade' => 'Sahih' },
-              { 'graded_by' => 'Scholar', 'grade' => 'Sahih' }, # duplicate
-              { 'graded_by' => 'Another', 'grade' => 'Sahih' }
-            ]
-          }
-        ]
-      }
-      result = instance.send(:flatten_hadith_item, item)
-
-      expect(result['grades']).to match_array([
-        { 'grade' => 'Sahih', 'gradeBy' => 'Scholar' },
-        { 'grade' => 'Sahih', 'gradeBy' => 'Another' }
-      ]) # deduplicated
     end
 
     it 'adds collection name when collection exists' do
@@ -677,9 +523,10 @@ RSpec.describe SunnahApi do
         ]
       }
 
-      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      result = instance.send(:add_collection_name, item, language: 'en')
       expect(result['name']).to eq('Sahih al-Bukhari')
       expect(result['collection']).to eq('bukhari')
+      expect(result).to have_key('hadith')
     end
 
     it 'adds Arabic collection name when language is ar' do
@@ -700,9 +547,10 @@ RSpec.describe SunnahApi do
         ]
       }
 
-      result = instance.send(:flatten_hadith_item, item, language: 'ar')
+      result = instance.send(:add_collection_name, item, language: 'ar')
       expect(result['name']).to eq('صحيح البخاري')
       expect(result['collection']).to eq('bukhari')
+      expect(result).to have_key('hadith')
     end
 
     it 'does not add collection name when collection is not found' do
@@ -716,9 +564,10 @@ RSpec.describe SunnahApi do
         ]
       }
 
-      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      result = instance.send(:add_collection_name, item, language: 'en')
       expect(result).not_to have_key('name')
       expect(result['collection']).to eq('unknown')
+      expect(result).to have_key('hadith')
     end
 
     it 'does not add collection name when collection is missing' do
@@ -729,8 +578,9 @@ RSpec.describe SunnahApi do
         ]
       }
 
-      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      result = instance.send(:add_collection_name, item, language: 'en')
       expect(result).not_to have_key('name')
+      expect(result).to have_key('hadith')
     end
 
     it 'does not add collection name when collection has no title for language' do
@@ -750,9 +600,10 @@ RSpec.describe SunnahApi do
         ]
       }
 
-      result = instance.send(:flatten_hadith_item, item, language: 'en')
+      result = instance.send(:add_collection_name, item, language: 'en')
       expect(result).not_to have_key('name')
       expect(result['collection']).to eq('bukhari')
+      expect(result).to have_key('hadith')
     end
   end
 

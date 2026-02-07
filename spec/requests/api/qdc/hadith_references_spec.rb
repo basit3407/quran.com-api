@@ -219,10 +219,80 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(sunnah_api).to receive(:hadith_by_urns)
         .with([201, 202, 203, 204], language: 'en')
         .and_return('data' => [
-          { 'urn' => 201, 'collection' => 'bukhari', 'name' => 'Sahih al-Bukhari' },
-          { 'urn' => 202, 'collection' => 'bukhari', 'name' => 'Sahih al-Bukhari' },
-          { 'urn' => 203, 'collection' => 'muslim', 'name' => 'Sahih Muslim' },
-          { 'urn' => 204, 'collection' => 'nasai', 'name' => 'Sunan an-Nasa\'i' }
+          {
+            'urn' => 201,
+            'collection' => 'bukhari',
+            'bookNumber' => '1',
+            'chapterId' => '1',
+            'hadithNumber' => '1',
+            'name' => 'Sahih al-Bukhari',
+            'hadith' => [
+              {
+                'lang' => 'en',
+                'chapterNumber' => '1',
+                'chapterTitle' => 'Revelation',
+                'body' => 'Narrated Umar bin Al-Khattab:...',
+                'urn' => 31,
+                'grades' => [
+                  { 'graded_by' => 'Ahmad Muhammad Shakir', 'grade' => 'Sahih' }
+                ]
+              }
+            ]
+          },
+          {
+            'urn' => 202,
+            'collection' => 'bukhari',
+            'bookNumber' => '1',
+            'chapterId' => '1',
+            'hadithNumber' => '2',
+            'name' => 'Sahih al-Bukhari',
+            'hadith' => [
+              {
+                'lang' => 'en',
+                'chapterNumber' => '1',
+                'chapterTitle' => 'Revelation',
+                'body' => 'Narrated Abdullah bin Amr:...',
+                'urn' => 32,
+                'grades' => []
+              }
+            ]
+          },
+          {
+            'urn' => 203,
+            'collection' => 'muslim',
+            'bookNumber' => '1',
+            'chapterId' => '2',
+            'hadithNumber' => '1',
+            'name' => 'Sahih Muslim',
+            'hadith' => [
+              {
+                'lang' => 'en',
+                'chapterNumber' => '2',
+                'chapterTitle' => 'Faith',
+                'body' => 'Narrated Abu Huraira:...',
+                'urn' => 33,
+                'grades' => []
+              }
+            ]
+          },
+          {
+            'urn' => 204,
+            'collection' => 'nasai',
+            'bookNumber' => '1',
+            'chapterId' => '1',
+            'hadithNumber' => '1',
+            'name' => "Sunan an-Nasa'i",
+            'hadith' => [
+              {
+                'lang' => 'en',
+                'chapterNumber' => '1',
+                'chapterTitle' => 'Purification',
+                'body' => 'Narrated Anas bin Malik:...',
+                'urn' => 34,
+                'grades' => []
+              }
+            ]
+          }
         ])
 
       get "/api/qdc/hadith_references/by_ayah/#{ayah_key}/hadiths"
@@ -234,6 +304,7 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(json['hadiths'].first['urn']).to eq(201)
       expect(json['hadiths'].first['name']).to eq('Sahih al-Bukhari')
       expect(json['hadiths'].first['collection']).to eq('bukhari')
+      expect(json['hadiths'].first).to have_key('hadith')
       expect(json['page']).to eq(1)
       expect(json['limit']).to eq(4)
       expect(json['has_more']).to eq(true)
@@ -253,8 +324,44 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(sunnah_api).to receive(:hadith_by_urns)
         .with([103, 104], language: 'ar')
         .and_return('data' => [
-          { 'urn' => 103, 'collection' => 'bukhari', 'name' => 'صحيح البخاري' },
-          { 'urn' => 104, 'collection' => 'muslim', 'name' => 'صحيح مسلم' }
+          {
+            'urn' => 103,
+            'collection' => 'bukhari',
+            'bookNumber' => '1',
+            'chapterId' => '1',
+            'hadithNumber' => '1',
+            'name' => 'صحيح البخاري',
+            'hadith' => [
+              {
+                'lang' => 'ar',
+                'chapterNumber' => '1',
+                'chapterTitle' => 'الوحى',
+                'body' => 'حدثنا عمر بن الخطاب بالعربية...',
+                'urn' => 31,
+                'grades' => [
+                  { 'graded_by' => 'العلماء', 'grade' => 'صحيح' }
+                ]
+              }
+            ]
+          },
+          {
+            'urn' => 104,
+            'collection' => 'muslim',
+            'bookNumber' => '1',
+            'chapterId' => '2',
+            'hadithNumber' => '1',
+            'name' => 'صحيح مسلم',
+            'hadith' => [
+              {
+                'lang' => 'ar',
+                'chapterNumber' => '2',
+                'chapterTitle' => 'الإيمان',
+                'body' => 'حدثنا أبو هريرة بالعربية...',
+                'urn' => 32,
+                'grades' => []
+              }
+            ]
+          }
         ])
 
       get "/api/qdc/hadith_references/by_ayah/#{ayah_key}/hadiths", params: { page: 2, limit: 2, language: 'ar' }
@@ -266,6 +373,7 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
       expect(json['hadiths'].first['urn']).to eq(103)
       expect(json['hadiths'].first['name']).to eq('صحيح البخاري')
       expect(json['hadiths'].first['collection']).to eq('bukhari')
+      expect(json['hadiths'].first).to have_key('hadith')
       expect(json['page']).to eq(2)
       expect(json['limit']).to eq(2)
       expect(json['has_more']).to eq(true)

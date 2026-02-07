@@ -21,7 +21,7 @@ class SunnahApi
     language_code = language.to_s.downcase == 'ar' ? 'ar' : 'en'
 
     data = raw_response['data'].map do |item|
-      flatten_hadith_item(item, language: language_code)
+      add_collection_name(item, language: language_code)
     end
 
     raw_response.merge('data' => data)
@@ -126,58 +126,21 @@ class SunnahApi
     raw.sub(%r{/*\z}, '')
   end
 
-  def flatten_hadith_item(item, language: DEFAULT_LANGUAGE)
+  def add_collection_name(item, language: DEFAULT_LANGUAGE)
     return item unless item.is_a?(Hash)
 
-    flattened = item.dup
-    hadiths = flattened.delete('hadith') || []
-    all_grades = []
+    result = item.dup
+    collection_name = result['collection']
 
-    hadiths.each do |hadith|
-      next unless hadith.is_a?(Hash)
-
-      lang = hadith['lang'].to_s
-
-      is_language_arabic = language == 'ar'
-
-      # For body/urn: extract all languages unless language is Arabic
-      if (is_language_arabic && lang == "ar") || !is_language_arabic
-        flattened["#{lang}_body"] = hadith['body'] if hadith.key?('body')
-        flattened["#{lang}_urn"] = hadith['urn'] if hadith.key?('urn')
-      end
-
-      # For grades: same filter but exclude Arabic when language is not Arabic
-      include_grade = (is_language_arabic && lang == "ar") || !is_language_arabic && lang != "ar"
-
-      if include_grade
-        grades = hadith['grades'] || []
-        grades.each do |grade|
-          next unless grade.is_a?(Hash)
-          next unless grade['grade']
-
-          all_grades << {
-            'grade' => grade['grade'],
-            'gradeBy' => grade['graded_by']
-          }
-        end
-      end
-    end
-
-    # Deduplicate grades
-    grade_objects = all_grades.uniq
-    flattened['grades'] = grade_objects unless grade_objects.empty?
-
-    # Add collection name
-    collection_name = flattened['collection']
     if collection_name
       collection = get_collection(collection_name)
       if collection
         collection_info = collection['collection']&.find { |c| c['lang'] == language }
         title = collection_info&.dig('title')
-        flattened['name'] = title if title
+        result['name'] = title if title
       end
     end
 
-    flattened
+    result
   end
 end
