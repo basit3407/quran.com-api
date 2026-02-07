@@ -195,6 +195,6 @@ module Api::Qdc
     def limit_param
       limit = (params[:limit] || 4).to_i
       limit.clamp(1, 5)
-    end    
+    end
   end
 end

@@ -1,4 +1,4 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 require 'rails_helper'
 
@@ -6,16 +6,31 @@ RSpec.describe SunnahApi do
   let(:instance) { described_class.instance }
 
   before do
+    # Capture original environment variables so they can be restored
+    @original_sunnah_api_key = ENV.key?('SUNNAH_API_KEY') ? ENV['SUNNAH_API_KEY'] : :__sunnah_api_env_missing__
+    @original_sunnah_api_url = ENV.key?('SUNNAH_API_URL') ? ENV['SUNNAH_API_URL'] : :__sunnah_api_env_missing__
+
     # Set required environment variables
     ENV['SUNNAH_API_KEY'] = 'test-api-key'
     ENV['SUNNAH_API_URL'] = 'https://api.sunnah.com/v1'
   end
 
   after do
-    ENV.delete('SUNNAH_API_KEY')
-    ENV.delete('SUNNAH_API_URL')
-    # Reset singleton cache if method exists
-    instance.instance_variable_set(:@collections, nil) if instance.instance_variable_defined?(:@collections)
+    # Restore original environment variable values
+    if @original_sunnah_api_key == :__sunnah_api_env_missing__
+      ENV.delete('SUNNAH_API_KEY')
+    else
+      ENV['SUNNAH_API_KEY'] = @original_sunnah_api_key
+    end
+
+    if @original_sunnah_api_url == :__sunnah_api_env_missing__
+      ENV.delete('SUNNAH_API_URL')
+    else
+      ENV['SUNNAH_API_URL'] = @original_sunnah_api_url
+    end
+
+    # Reset singleton cache if it exists
+    instance.instance_variable_set(:@collections_by_name, {}) if instance.instance_variable_defined?(:@collections_by_name)
   end
 
   describe '#hadith_by_urns_raw' do
