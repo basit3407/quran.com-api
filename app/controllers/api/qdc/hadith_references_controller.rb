@@ -33,6 +33,7 @@ module Api::Qdc
 
       @references = HadithReference
         .for_verse_index(@verse.verse_index)
+        .bukhari_and_muslim
         .order(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
         .to_a
 
@@ -68,6 +69,7 @@ module Api::Qdc
 
       reference_scope = HadithReference
         .for_verse_index(@verse.verse_index)
+        .bukhari_and_muslim
         .order(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
 
       @limit = limit_param
@@ -166,14 +168,10 @@ module Api::Qdc
         return render 'api/qdc/hadith_references/error', status: :bad_request
       end
 
-      @verse_counts = Verse
-        .unscope(:order)
-        .where(verse_index: from_verse_index..to_verse_index)
-        .joins(<<~SQL.squish)
-          INNER JOIN hadith_references
-          ON verses.verse_index BETWEEN hadith_references.ayah_start_index
-          AND hadith_references.ayah_end_index
-        SQL
+      @verse_counts = HadithReference
+        .bukhari_and_muslim
+        .where("ayah_end_index >= ? AND ayah_start_index <= ?", from_verse_index, to_verse_index)
+        .joins("INNER JOIN verses ON verses.verse_index BETWEEN hadith_references.ayah_start_index AND hadith_references.ayah_end_index AND verses.verse_index BETWEEN #{from_verse_index} AND #{to_verse_index}")
         .group('verses.verse_key')
         .pluck(Arel.sql('verses.verse_key, COUNT(hadith_references.id)'))
         .to_h

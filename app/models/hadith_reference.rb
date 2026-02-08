@@ -38,6 +38,10 @@ class HadithReference < ApplicationRecord
     where('ayah_start_index <= ? AND ayah_end_index >= ?', verse_index, verse_index)
   }
 
+  scope :bukhari_and_muslim, -> {
+    where(collection: ['bukhari', 'muslim'])
+  }
+
   private
 
   def ayah_range_is_valid

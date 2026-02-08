@@ -41,7 +41,7 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
                       verse_index: 12012)
     end
 
-    let(:relation) { instance_double(ActiveRecord::Relation) }
+    let(:relation) { double('active_record_relation') }
 
     let(:reference_one) do
       instance_double(HadithReference,
@@ -82,6 +82,7 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
     it 'returns ordered references for the verse' do
       allow(Verse).to receive(:find_by).with(verse_key: ayah_key).and_return(verse)
       allow(HadithReference).to receive(:for_verse_index).with(verse.verse_index).and_return(relation)
+      allow(relation).to receive(:bukhari_and_muslim).and_return(relation)
       allow(relation).to receive(:order)
         .with(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
         .and_return(relation)
@@ -120,6 +121,7 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
     it 'returns empty array when verse has no references' do
       allow(Verse).to receive(:find_by).with(verse_key: ayah_key).and_return(verse)
       allow(HadithReference).to receive(:for_verse_index).with(verse.verse_index).and_return(relation)
+      allow(relation).to receive(:bukhari_and_muslim).and_return(relation)
       allow(relation).to receive(:order)
         .with(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
         .and_return(relation)
@@ -168,7 +170,7 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
                       verse_index: 12012)
     end
 
-    let(:relation) { instance_double(ActiveRecord::Relation) }
+    let(:relation) { double('active_record_relation') }
     let(:sunnah_api) { instance_double(SunnahApi) }
 
     let(:reference_one) do
@@ -204,6 +206,7 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
     before do
       allow(Verse).to receive(:find_by).with(verse_key: ayah_key).and_return(verse)
       allow(HadithReference).to receive(:for_verse_index).with(verse.verse_index).and_return(relation)
+      allow(relation).to receive(:bukhari_and_muslim).and_return(relation)
       allow(relation).to receive(:order)
         .with(:collection, :our_hadith_number, :ayah_start_index, :ayah_end_index)
         .and_return(relation)
