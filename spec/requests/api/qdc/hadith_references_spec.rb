@@ -24,11 +24,11 @@ RSpec.describe 'Api::Qdc::HadithReferences', type: :request do
 
   def stub_count_query(result_hash)
     relation = instance_double(ActiveRecord::Relation)
-    allow(Verse).to receive(:unscope).with(:order).and_return(relation)
-    allow(relation).to receive(:where).with(verse_index: anything).and_return(relation)
-    allow(relation).to receive(:joins).with(anything).and_return(relation)
+    allow(HadithReference).to receive(:bukhari_and_muslim).and_return(relation)
+    allow(relation).to receive(:where).and_return(relation)
+    allow(relation).to receive(:joins).and_return(relation)
     allow(relation).to receive(:group).with('verses.verse_key').and_return(relation)
-    allow(relation).to receive(:pluck).with(anything).and_return(result_hash.to_a)
+    allow(relation).to receive(:pluck).and_return(result_hash.to_a)
   end
 
   describe 'GET /api/qdc/hadith_references/by_ayah/:ayah_key' do
