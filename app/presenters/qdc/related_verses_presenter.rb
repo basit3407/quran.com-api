@@ -13,13 +13,9 @@ module Qdc
       end
     end
 
-    def chapters
-      finder.chapters
-    end
+    delegate :chapters, to: :finder
 
-    def find_verse
-      finder.find_verse
-    end
+    delegate :find_verse, to: :finder
 
     def get_language
       finder.language
@@ -30,10 +26,9 @@ module Qdc
         current_page: finder.current_page,
         next_page: finder.next_page,
         total_pages: finder.total_pages,
-        total_count: finder.total_records,
+        total_records: finder.total_records,
         per_page: finder.per_page
       }
     end
   end
 end
-
