@@ -91,6 +91,7 @@ class Verse < ApplicationRecord
   has_many :mushaf_words
   has_many :media_contents, as: :resource
   has_many :translations
+  has_many :layered_translation_ayahs
   has_many :roots, through: :words
   has_many :audio_files
 

@@ -200,6 +200,12 @@ namespace :qdc do
     get 'matrix/count_within_range', to: 'matrix#count_within_range'
   end
 
+  # Layered translation (Study Mode Layers tab)
+  scope 'layered_translations', controller: 'layered_translations', defaults: { format: :json } do
+    get 'by_verse/:verse_key', action: 'by_verse'
+    get 'count_within_range', action: 'count_within_range'
+  end
+
   get 'ping', to: 'ping#ping'
   get '/', to: 'ping#ping'
 end

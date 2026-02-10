@@ -1,0 +1,81 @@
+return unless @layered_translation_ayah
+
+json.object! do
+  json.verse do
+    json.object! do
+      json.verse_key @verse.verse_key
+      json.chapter_number @verse.chapter_id
+      json.verse_number @verse.verse_number
+    end
+  end
+
+  json.resource do
+    json.object! do
+      json.id @resource.id
+      json.name @resource.name
+      json.description @resource.description
+      json.language @resource.language&.iso_code
+    end
+  end
+
+  json.collapsed_template @layered_translation_ayah.collapsed_template
+  json.expanded_template @layered_translation_ayah.expanded_template
+
+  json.collapsed_tokens do
+    json.array! @layered_translation_ayah.collapsed_tokens do |token|
+      json.object! do
+        json.type token[:type]
+        if token[:type] == 'alt_group'
+          json.group_key token[:group_key]
+        else
+          json.html token[:html]
+        end
+      end
+    end
+  end
+
+  json.expanded_tokens do
+    json.array! @layered_translation_ayah.expanded_tokens do |token|
+      json.object! do
+        json.type token[:type]
+        if token[:type] == 'alt_group'
+          json.group_key token[:group_key]
+        else
+          json.html token[:html]
+        end
+      end
+    end
+  end
+
+  json.groups do
+    json.array! @groups do |group|
+      json.object! do
+        json.group_key group.group_key
+        json.position group.position
+        json.default_option_key group.default_option_key
+        json.explanation_html group.explanation_html
+
+        json.options do
+          options = group.layered_translation_options.sort_by { |option| [option.position || Float::INFINITY, option.id] }
+          json.array! options do |option|
+            json.object! do
+              json.option_key option.option_key
+              json.position option.position
+              json.collapsed_html option.collapsed_html
+              json.expanded_html option.expanded_html
+            end
+          end
+        end
+      end
+    end
+  end
+
+  json.meta do
+    json.object! do
+      json.requested_language @requested_language&.iso_code
+      json.resolved_language @resource.language&.iso_code
+      json.fallback_used @fallback_used
+      json.generated_at Time.current.iso8601
+    end
+  end
+end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2026_01_21_105029) do
+ActiveRecord::Schema[7.0].define(version: 2026_02_07_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -440,7 +440,9 @@ ActiveRecord::Schema[7.0].define(version: 2026_01_21_105029) do
     t.integer "resource_content_id"
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.bigint "layered_translation_ayah_id"
     t.index ["language_id"], name: "index_foot_notes_on_language_id"
+    t.index ["layered_translation_ayah_id"], name: "index_foot_notes_on_layered_translation_ayah_id"
     t.index ["resource_content_id"], name: "index_foot_notes_on_resource_content_id"
     t.index ["translation_id"], name: "index_foot_notes_on_translation_id"
   end
@@ -511,6 +513,42 @@ ActiveRecord::Schema[7.0].define(version: 2026_01_21_105029) do
     t.integer "translations_count"
     t.index ["iso_code"], name: "index_languages_on_iso_code", unique: true
     t.index ["translations_count"], name: "index_languages_on_translations_count"
+  end
+
+  create_table "layered_translation_ayahs", force: :cascade do |t|
+    t.integer "resource_content_id", null: false
+    t.integer "verse_id", null: false
+    t.text "collapsed_template", null: false
+    t.text "expanded_template", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["resource_content_id", "verse_id"], name: "idx_layered_translation_ayahs_on_resource_and_verse", unique: true
+    t.index ["resource_content_id"], name: "index_layered_translation_ayahs_on_resource_content_id"
+    t.index ["verse_id"], name: "index_layered_translation_ayahs_on_verse_id"
+  end
+
+  create_table "layered_translation_groups", force: :cascade do |t|
+    t.bigint "layered_translation_ayah_id", null: false
+    t.string "group_key", null: false
+    t.integer "position", default: 1, null: false
+    t.string "default_option_key", null: false
+    t.text "explanation_html"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["layered_translation_ayah_id", "group_key"], name: "idx_layered_translation_groups_on_ayah_and_key", unique: true
+    t.index ["layered_translation_ayah_id"], name: "index_layered_translation_groups_on_layered_translation_ayah_id"
+  end
+
+  create_table "layered_translation_options", force: :cascade do |t|
+    t.bigint "layered_translation_group_id", null: false
+    t.string "option_key", null: false
+    t.integer "position", default: 1, null: false
+    t.text "collapsed_html", null: false
+    t.text "expanded_html", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["layered_translation_group_id", "option_key"], name: "idx_layered_translation_options_on_group_and_key", unique: true
+    t.index ["layered_translation_group_id"], name: "idx_lt_options_on_group"
   end
 
   create_table "lemma", primary_key: "lemma_id", id: :serial, force: :cascade do |t|
@@ -1143,6 +1181,29 @@ ActiveRecord::Schema[7.0].define(version: 2026_01_21_105029) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["topic_id"], name: "index_related_topics_on_topic_id"
+  end
+
+  create_table "related_verses", force: :cascade do |t|
+    t.bigint "verse_id", null: false
+    t.bigint "related_verse_id", null: false
+    t.bigint "relation_type_id", null: false
+    t.boolean "approved", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "LEAST(verse_id, related_verse_id), GREATEST(verse_id, related_verse_id), relation_type_id", name: "index_related_verses_bidirectional_unique", unique: true
+    t.index ["related_verse_id", "approved"], name: "index_related_verses_on_related_verse_id_and_approved"
+    t.index ["related_verse_id"], name: "index_related_verses_on_related_verse_id"
+    t.index ["relation_type_id"], name: "index_related_verses_on_relation_type_id"
+    t.index ["verse_id", "approved"], name: "index_related_verses_on_verse_id_and_approved"
+    t.index ["verse_id", "related_verse_id", "relation_type_id"], name: "index_related_verses_unique", unique: true
+    t.index ["verse_id"], name: "index_related_verses_on_verse_id"
+  end
+
+  create_table "relation_types", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_relation_types_on_name", unique: true
   end
 
   create_table "resource", primary_key: "resource_id", id: :serial, force: :cascade do |t|
@@ -1830,8 +1891,13 @@ ActiveRecord::Schema[7.0].define(version: 2026_01_21_105029) do
   add_foreign_key "country_language_preferences", "resource_contents", column: "default_tafsir_id", on_delete: :cascade
   add_foreign_key "file", "ayah", column: "ayah_key", primary_key: "ayah_key", name: "_file_ayah_key_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "file", "recitation", primary_key: "recitation_id", name: "_file_recitation_id_fkey", on_update: :cascade, on_delete: :cascade
+  add_foreign_key "foot_notes", "layered_translation_ayahs"
   add_foreign_key "image", "ayah", column: "ayah_key", primary_key: "ayah_key", name: "image_ayah_key_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "image", "resource", primary_key: "resource_id", name: "image_resource_id_fkey", on_update: :cascade, on_delete: :cascade
+  add_foreign_key "layered_translation_ayahs", "resource_contents"
+  add_foreign_key "layered_translation_ayahs", "verses"
+  add_foreign_key "layered_translation_groups", "layered_translation_ayahs"
+  add_foreign_key "layered_translation_options", "layered_translation_groups"
   add_foreign_key "localized_contents", "languages"
   add_foreign_key "localized_contents", "resource_contents"
   add_foreign_key "morphology_derived_words", "verses"
@@ -1860,6 +1926,9 @@ ActiveRecord::Schema[7.0].define(version: 2026_01_21_105029) do
   add_foreign_key "qirat_types", "qiraat_transmitters"
   add_foreign_key "recitation", "reciter", primary_key: "reciter_id", name: "recitation_reciter_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "recitation", "style", primary_key: "style_id", name: "recitation_style_id_fkey", on_update: :cascade, on_delete: :cascade
+  add_foreign_key "related_verses", "relation_types"
+  add_foreign_key "related_verses", "verses"
+  add_foreign_key "related_verses", "verses", column: "related_verse_id"
   add_foreign_key "resource", "author", primary_key: "author_id", name: "resource_author_id_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "resource", "language", column: "language_code", primary_key: "language_code", name: "resource_language_code_fkey", on_update: :cascade, on_delete: :cascade
   add_foreign_key "resource", "source", primary_key: "source_id", name: "resource_source_id_fkey", on_update: :cascade, on_delete: :cascade

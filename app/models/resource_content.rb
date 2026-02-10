@@ -79,6 +79,9 @@ class ResourceContent < ApplicationRecord
   scope :approved, -> { where approved: true }
   scope :recitations, -> { where sub_type: SubType::Audio }
   scope :allowed_to_share, -> { where.not(permission_to_share: :rejected) }
+  scope :layered_translations, lambda {
+    translations_only.where("resource_contents.meta_data ->> 'is-layered-translation' = 'true'")
+  }
 
   module CardinalityType
     OneVerse = '1_ayah'
@@ -110,6 +113,7 @@ class ResourceContent < ApplicationRecord
   belongs_to :data_source
   has_one :resource_content_stat
   has_one :resource_permission
+  has_many :layered_translation_ayahs, dependent: :destroy
 
   def self.filter_by(ids: nil, name: nil)
     if name.present?
