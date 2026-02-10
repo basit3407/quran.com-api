@@ -1,0 +1,13 @@
+json.object! do
+  json.verse_key @verse.verse_key
+  json.verse_number @verse.verse_number
+  json.chapter_number @verse.chapter_id
+  json.language @language.iso_code
+  json.direction @language.direction
+
+  json.hadith_references do
+    json.array! @references do |reference|
+      json.partial! 'reference', reference: reference
+    end
+  end
+end

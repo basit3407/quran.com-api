@@ -90,6 +90,13 @@ namespace :qdc do
     get 'by_key/:verse_key', action: 'by_key'
   end
 
+  # Hadith references routes
+  namespace :hadith_references do
+    get 'by_ayah/:ayah_key', action: 'by_ayah'
+    get 'by_ayah/:ayah_key/hadiths', action: 'hadiths'
+    get 'count_within_range', action: 'count_within_range'
+  end
+
   get :search, to: 'search#search'
   get :navigate, to: 'search#navigate'
 

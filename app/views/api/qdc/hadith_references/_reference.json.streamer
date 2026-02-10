@@ -1,0 +1,16 @@
+json.object! do
+  start_key = QuranUtils::Quran.get_ayah_key_from_id(reference.ayah_start_index)
+  end_key = QuranUtils::Quran.get_ayah_key_from_id(reference.ayah_end_index)
+  start_surah, start_ayah = start_key&.split(':')&.map(&:to_i)
+  _end_surah, end_ayah = end_key&.split(':')&.map(&:to_i)
+
+  json.id reference.id
+  json.collection reference.collection
+  json.hadith_number reference.hadith_number
+  json.our_hadith_number reference.our_hadith_number
+  json.arabic_urn reference.arabic_urn
+  json.english_urn reference.english_urn
+  json.surah_number start_surah
+  json.ayah_start_number start_ayah
+  json.ayah_end_number end_ayah
+end

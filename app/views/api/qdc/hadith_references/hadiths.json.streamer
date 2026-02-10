@@ -1,0 +1,11 @@
+json.object! do
+  json.hadiths do
+    json.array! @hadiths
+  end
+
+  json.page @page
+  json.limit @limit
+  json.has_more @has_more
+  json.language @language.iso_code
+  json.direction @language.direction
+end

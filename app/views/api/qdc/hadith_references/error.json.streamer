@@ -1,0 +1,10 @@
+json.object! do
+  json.status response.status
+  json.error do
+    json.object! do
+      json.code @error[:code]
+      json.message @error[:message]
+      json.details @error[:details] if @error[:details].present?
+    end
+  end
+end
