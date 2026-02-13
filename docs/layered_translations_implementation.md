@@ -31,13 +31,12 @@ No `ui` object is stored in DB or returned by API.
 
 Layered translation resources are identified by:
 
-- `resource_contents.sub_type = 'translation'`
+- `resource_contents.sub_type = 'layer-translation'`
 - `resource_contents.cardinality_type = '1_ayah'`
 - `resource_contents.approved = true`
 - `resource_contents.permission_to_share != rejected`
-- `resource_contents.meta_data ->> 'is-layered-translation' = 'true'`
 
-Note: the canonical metadata key used in API scope is `is-layered-translation`.
+Note: Layered translations have their own sub_type and are separate from regular translations.
 
 ## 4) Database Schema
 
@@ -257,6 +256,7 @@ API:
 - `app/models/resource_content.rb`
 - `db/migrate/20260206100000_create_layered_translation_structures.rb`
 - `db/migrate/20260207110000_remove_layered_translation_group_dependencies.rb`
+- `db/migrate/20260214100000_update_layered_translations_sub_type.rb`
 - `db/schema.rb`
 
 Cross-repo tooling (authoring/import/editor):

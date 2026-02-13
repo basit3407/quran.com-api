@@ -79,9 +79,7 @@ class ResourceContent < ApplicationRecord
   scope :approved, -> { where approved: true }
   scope :recitations, -> { where sub_type: SubType::Audio }
   scope :allowed_to_share, -> { where.not(permission_to_share: :rejected) }
-  scope :layered_translations, lambda {
-    translations_only.where("resource_contents.meta_data ->> 'is-layered-translation' = 'true'")
-  }
+  scope :layered_translations, -> { where sub_type: SubType::LayerTranslation }
 
   module CardinalityType
     OneVerse = '1_ayah'
@@ -99,6 +97,7 @@ class ResourceContent < ApplicationRecord
 
   module SubType
     Translation = 'translation'
+    LayerTranslation = 'layer-translation'
     Tafsir = 'tafsir'
     Transliteration = 'transliteration'
     Font = 'font'
