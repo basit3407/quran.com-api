@@ -256,7 +256,6 @@ API:
 - `app/models/resource_content.rb`
 - `db/migrate/20260206100000_create_layered_translation_structures.rb`
 - `db/migrate/20260207110000_remove_layered_translation_group_dependencies.rb`
-- `db/migrate/20260214100000_update_layered_translations_sub_type.rb`
 - `db/schema.rb`
 
 Cross-repo tooling (authoring/import/editor):
