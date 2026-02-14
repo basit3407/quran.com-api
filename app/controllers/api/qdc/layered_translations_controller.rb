@@ -128,7 +128,7 @@ module Api
           .layered_translations
           .one_verse
           .approved
-          .allowed_to_share
+          .allowed_to_host
       end
 
       def resolve_resource
