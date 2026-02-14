@@ -31,7 +31,7 @@ No `ui` object is stored in DB or returned by API.
 
 Layered translation resources are identified by:
 
-- `resource_contents.sub_type = 'layer-translation'`
+- `resource_contents.sub_type = 'layered-translation'`
 - `resource_contents.cardinality_type = '1_ayah'`
 - `resource_contents.approved = true`
 - `resource_contents.permission_to_share != rejected`
