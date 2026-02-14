@@ -31,13 +31,12 @@ No `ui` object is stored in DB or returned by API.
 
 Layered translation resources are identified by:
 
-- `resource_contents.sub_type = 'translation'`
+- `resource_contents.sub_type = 'layered-translation'`
 - `resource_contents.cardinality_type = '1_ayah'`
 - `resource_contents.approved = true`
 - `resource_contents.permission_to_share != rejected`
-- `resource_contents.meta_data ->> 'is-layered-translation' = 'true'`
 
-Note: the canonical metadata key used in API scope is `is-layered-translation`.
+Note: Layered translations have their own sub_type and are separate from regular translations.
 
 ## 4) Database Schema
 

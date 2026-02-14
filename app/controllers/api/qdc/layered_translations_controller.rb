@@ -125,11 +125,10 @@ module Api
 
       def layered_resource_scope
         ResourceContent
-          .translations_only
+          .layered_translations
           .one_verse
           .approved
-          .allowed_to_share
-          .where("resource_contents.meta_data ->> 'is-layered-translation' = 'true'")
+          .allowed_to_host
       end
 
       def resolve_resource
