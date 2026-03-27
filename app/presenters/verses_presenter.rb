@@ -189,6 +189,38 @@ class VersesPresenter < BasePresenter
     end
   end
 
+  def mushaf_page_layout?
+    verses_filter == 'by_page'
+  end
+
+  def verse_page_number_for(verse, page_layout: mushaf_page_layout?)
+    if page_layout
+      verse.get_page_number_for(mushaf: get_mushaf_id)
+    else
+      verse.get_qpc_page_number(get_mushaf_code)
+    end
+  end
+
+  def verse_words_for(verse, page_layout: mushaf_page_layout?)
+    if page_layout
+      verse.mushaf_words.sort_by(&:position_in_verse)
+    else
+      verse.words
+    end
+  end
+
+  def word_partial_locals(page_layout: mushaf_page_layout?)
+    locals = { fields: word_fields }
+
+    if page_layout
+      locals[:page_layout] = true
+    else
+      locals[:mushaf_code] = get_mushaf_code
+    end
+
+    locals
+  end
+
   def fetch_chapters
     chapters = Chapter.where(id: chapter_ids).includes(:translated_name)
 

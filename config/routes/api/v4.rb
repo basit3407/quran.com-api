@@ -38,6 +38,11 @@ namespace :v4 do
   get :chapters, to: 'chapters#index'
   get 'chapters/:id', to: 'chapters#show'
 
+  # Page
+  get 'pages', to: 'pages#index'
+  get 'pages/lookup', to: 'pages#lookup'
+  get 'pages/:id', to: 'pages#show'
+
   # Chapter info
   get 'chapters/:id/info', to: 'chapter_infos#show'
 

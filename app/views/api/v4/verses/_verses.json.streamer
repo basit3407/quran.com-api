@@ -5,11 +5,10 @@ include_translations = @presenter.render_translations?
 include_audio = @presenter.render_audio?
 include_tafsirs = @presenter.render_tafsirs?
 fields = @presenter.verse_fields
-word_fields = @presenter.word_fields
 tafsir_fields = @presenter.tafsir_fields
 translation_fields = @presenter.translation_fields
-mushaf_code = @presenter.get_mushaf_code
 mushaf_type = @presenter.get_mushaf_type
+page_layout = @presenter.mushaf_page_layout?
 
 json.object! do
   json.verses do
@@ -24,12 +23,15 @@ json.object! do
                       :manzil_number,
                       :sajdah_number, *fields
 
-        json.page_number verse.get_qpc_page_number(mushaf_code)
+        json.page_number @presenter.verse_page_number_for(verse, page_layout: page_layout)
         json.juz_number verse.get_juz_number_for(mushaf_type: mushaf_type)
 
         if include_words
           json.words do
-            json.array! verse.words, partial: 'word', as: :word, locals: { fields: word_fields, mushaf_code: mushaf_code }
+            json.array! @presenter.verse_words_for(verse, page_layout: page_layout),
+                        partial: 'word',
+                        as: :word,
+                        locals: @presenter.word_partial_locals(page_layout: page_layout)
           end
         end
 

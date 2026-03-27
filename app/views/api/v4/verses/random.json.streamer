@@ -27,12 +27,15 @@ json.object! do
                     :manzil_number,
                     :sajdah_number, *fields
 
-      json.page_number verse.get_page_number_for(mushaf: mushaf_id)
+      json.page_number @presenter.verse_page_number_for(verse, page_layout: true)
       json.juz_number verse.get_juz_number_for(mushaf_type: mushaf_type)
 
       if include_words
         json.words do
-          json.array! verse.mushaf_words.order('position_in_verse ASC'), partial: 'word', as: :word, locals: { fields: word_fields }
+          json.array! @presenter.verse_words_for(verse, page_layout: true),
+                      partial: 'word',
+                      as: :word,
+                      locals: @presenter.word_partial_locals(page_layout: true)
         end
       end
 

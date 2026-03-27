@@ -3,6 +3,7 @@
 #TODO: replace with QdcFinder
 class V4::VerseFinder < ::VerseFinder
   def random_verse(filters, language_code, words: true, tafsirs: false, translations: false, audio: false)
+    @mushaf_page_layout = false
     @results = Verse.unscope(:order).where(filters).order('RANDOM()').limit(3)
 
     load_words(language_code) if words
@@ -18,6 +19,7 @@ class V4::VerseFinder < ::VerseFinder
   end
 
   def find_with_key(key, language_code, words: true, tafsirs: false, translations: false, audio: false)
+    @mushaf_page_layout = false
     @results = Verse.where(verse_key: key).limit(1)
 
     load_words(language_code) if words
@@ -33,12 +35,14 @@ class V4::VerseFinder < ::VerseFinder
   end
 
   def load_verses(filter, language_code, mushaf: nil, words: true, tafsirs: false, translations: false, audio: false)
-    fetch_verses_range(filter, mushaf: mushaf)
-    load_words(language_code) if words
+    @mushaf_page_layout = filter == 'by_page'
+
+    fetch_verses_range(filter, mushaf: mushaf, words: words)
+    load_words(language_code, mushaf: mushaf) if words
     load_audio(audio) if audio
     load_tafsirs(tafsirs) if tafsirs.present?
 
-    words_ordering = words ? ', words.position ASC, word_translations.priority ASC' : ''
+    words_ordering = word_ordering_clause(words)
 
     records = @results.order("verses.verse_index ASC #{words_ordering}".strip).to_a
     preload_translations(records, translations) if translations.present?
@@ -48,9 +52,11 @@ class V4::VerseFinder < ::VerseFinder
 
   # TODO: it's time to merge v4 and qdc
   # We are writing lot of duplicate code now
-  def fetch_verses_range(filter, mushaf: nil)
+  def fetch_verses_range(filter, mushaf: nil, words: false)
     if 'by_range' == filter
       @results = fetch_by_range
+    elsif 'by_page' == filter
+      @results = fetch_by_page(mushaf: mushaf, words: words)
     elsif 'by_juz' == filter
       @results = fetch_by_juz(mushaf: mushaf)
     else
@@ -102,13 +108,21 @@ class V4::VerseFinder < ::VerseFinder
                  .where('verses.verse_number >= ? AND verses.verse_number <= ?', verse_start.to_i, verse_end.to_i)
   end
 
-  def fetch_by_page
-    mushaf_page = find_mushaf_page
+  def fetch_by_page(mushaf:, words:)
+    mushaf_page = find_mushaf_page(mushaf: mushaf)
     # Disable pagination for by_page route
     @per_page = @total_records = mushaf_page.verses_count
     @next_page = nil
 
-    @results = rescope_verses('verse_index').where(page_number: mushaf_page.page_number)
+    @results = rescope_verses('verse_index')
+                 .where('verses.verse_index >= ? AND verses.verse_index <= ?', mushaf_page.first_verse_id, mushaf_page.last_verse_id)
+
+    only_page_words = params[:filter_page_words] == 'true'
+    if words && mushaf.lines_per_page == 16 && only_page_words
+      @results = @results.where(mushaf_words: { page_number: mushaf_page.page_number })
+    else
+      @results
+    end
   end
 
   def fetch_by_rub_el_hizb
@@ -248,7 +262,9 @@ class V4::VerseFinder < ::VerseFinder
     end
   end
 
-  def load_words(word_translation_lang)
+  def load_words(word_translation_lang, mushaf: nil)
+    return load_page_words(word_translation_lang, mushaf) if @mushaf_page_layout
+
     language = Language.find_with_id_or_iso_code(word_translation_lang)
 
     approved_word_by_word_translations = ResourceContent.approved.allowed_to_share.one_word.translations_only
@@ -261,6 +277,23 @@ class V4::VerseFinder < ::VerseFinder
                    .eager_load(words: eager_load_words)
     else
       @results = words_with_default_translation.eager_load(words: eager_load_words)
+    end
+  end
+
+  def load_page_words(word_translation_lang, mushaf)
+    language = Language.find_with_id_or_iso_code(word_translation_lang)
+
+    @results = @results.where(mushaf_words: { mushaf_id: mushaf.id })
+    approved_word_by_word_translations = ResourceContent.approved.allowed_to_share.one_word.translations_only
+    words_with_default_translation = @results.where(word_translations: { language_id: Language.default.id })
+
+    if language
+      @results = @results
+                   .where(word_translations: { language_id: language.id, resource_content_id: approved_word_by_word_translations })
+                   .or(words_with_default_translation)
+                   .eager_load(mushaf_words: eager_load_mushaf_words)
+    else
+      @results = words_with_default_translation.eager_load(mushaf_words: eager_load_mushaf_words)
     end
   end
 
@@ -287,5 +320,19 @@ class V4::VerseFinder < ::VerseFinder
 
   def rescope_verses(by)
     Verse.unscope(:order).order("#{by} ASC")
+  end
+
+  def eager_load_mushaf_words
+    [:word_translation, :word]
+  end
+
+  def word_ordering_clause(words)
+    return '' unless words
+
+    if @mushaf_page_layout
+      ', mushaf_words.position_in_verse ASC, word_translations.priority ASC'
+    else
+      ', words.position ASC, word_translations.priority ASC'
+    end
   end
 end

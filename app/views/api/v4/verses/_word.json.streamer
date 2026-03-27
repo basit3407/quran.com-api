@@ -1,16 +1,25 @@
 # frozen_string_literal: true
 
+page_layout = local_assigns.fetch(:page_layout, word.respond_to?(:word_id))
+mushaf_code = local_assigns[:mushaf_code] || :v1
+
 json.object! do
+  json.id(page_layout ? word.word_id : word.id)
   json.extract! word,
-                :id,
                 :position,
                 :audio_url,
                 :char_type_name,
                 *fields
 
-  json.page_number word.get_qpc_page_number(mushaf_code)
-  json.line_number word.get_qpc_line_number(mushaf_code)
-  json.text word.get_text(mushaf_code)
+  if page_layout
+    json.page_number word.page_number
+    json.line_number word.line_number
+    json.text word.text
+  else
+    json.page_number word.get_qpc_page_number(mushaf_code)
+    json.line_number word.get_qpc_line_number(mushaf_code)
+    json.text word.get_text(mushaf_code)
+  end
 
   json.translation do
     json.object! do

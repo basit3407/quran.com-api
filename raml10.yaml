@@ -260,6 +260,156 @@ documentation:
           language:
             type: string
             default: en
+/pages:
+  displayName: pages
+  get:
+    displayName: LIST-pages
+    description: Get all pages for the selected mushaf.
+    responses:
+      '200':
+        body:
+          application/json: |-
+            {
+              "type": "object",
+              "properties": {
+                "pages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              },
+              "example": {
+                "pages": [
+                  {
+                    "id": 1,
+                    "page_number": 507,
+                    "verse_mapping": {
+                      "47:1": "47:3"
+                    },
+                    "first_verse_id": 4787,
+                    "last_verse_id": 4789,
+                    "verses_count": 3
+                  }
+                ]
+              }
+            }
+    queryParameters:
+      mushaf:
+        type: integer
+        description: Optional mushaf id. Defaults to the system default mushaf.
+        displayName: Optional mushaf id. Defaults to the system default mushaf.
+  /lookup:
+    displayName: lookup
+    get:
+      displayName: GET-pages-lookup
+      description: Get page boundaries for a chapter, juz, page, or verse range in the selected mushaf.
+      responses:
+        '200':
+          body:
+            application/json: |-
+              {
+                "type": "object",
+                "properties": {
+                  "total_page": {
+                    "type": "integer"
+                  },
+                  "lookup_range": {
+                    "type": "object"
+                  },
+                  "pages": {
+                    "type": "object"
+                  }
+                },
+                "example": {
+                  "total_page": 2,
+                  "lookup_range": {
+                    "from": "47:1",
+                    "to": "47:5"
+                  },
+                  "pages": {
+                    "507": {
+                      "first_verse_key": "47:1",
+                      "last_verse_key": "47:3",
+                      "from": "47:1",
+                      "to": "47:3"
+                    },
+                    "508": {
+                      "first_verse_key": "47:4",
+                      "last_verse_key": "47:5",
+                      "from": "47:4",
+                      "to": "47:5"
+                    }
+                  }
+                }
+              }
+      queryParameters:
+        mushaf:
+          type: integer
+          description: Optional mushaf id. Defaults to the system default mushaf.
+          displayName: Optional mushaf id. Defaults to the system default mushaf.
+        chapter_number:
+          type: integer
+        juz_number:
+          type: integer
+        page_number:
+          type: integer
+        manzil_number:
+          type: integer
+        rub_el_hizb_number:
+          type: integer
+        hizb_number:
+          type: integer
+        ruku_number:
+          type: integer
+        from:
+          type: string
+          description: Starting verse key or verse id.
+          displayName: Starting verse key or verse id.
+        to:
+          type: string
+          description: Ending verse key or verse id.
+          displayName: Ending verse key or verse id.
+  '/{id}':
+    displayName: id
+    uriParameters:
+      id:
+        type: integer
+        description: Page number in the selected mushaf.
+        minimum: 1
+        displayName: Page number in the selected mushaf.
+    get:
+      displayName: GET-pages-page_number
+      description: Get metadata for a single page in the selected mushaf.
+      responses:
+        '200':
+          body:
+            application/json: |-
+              {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "object"
+                  }
+                },
+                "example": {
+                  "page": {
+                    "id": 1,
+                    "page_number": 507,
+                    "verse_mapping": {
+                      "47:1": "47:3"
+                    },
+                    "first_verse_id": 4787,
+                    "last_verse_id": 4789,
+                    "verses_count": 3
+                  }
+                }
+              }
+      queryParameters:
+        mushaf:
+          type: integer
+          description: Optional mushaf id. Defaults to the system default mushaf.
+          displayName: Optional mushaf id. Defaults to the system default mushaf.
 /verses:
   displayName: verses
   /by_chapter:
@@ -416,13 +566,12 @@ documentation:
       uriParameters:
         page_number:
           type: integer
-          description: 'Madani Mushaf page number. Valid range is 1-604 '
+          description: Page number in the selected mushaf.
           minimum: 1
-          maximum: 604
-          displayName: 'Madani Mushaf page number. Valid range is 1-604 '
+          displayName: Page number in the selected mushaf.
       get:
         displayName: By Page
-        description: Get all verses of a specific Madani Mushaf page(1 to 604)
+        description: Get all verses of a specific page in the selected mushaf.
         responses:
           '200':
             body:
@@ -502,6 +651,10 @@ documentation:
             default: en
             description: Language to fetch word translation in specific language.
             displayName: Language to fetch word translation in specific language.
+          mushaf:
+            type: integer
+            description: Optional mushaf id. When provided, page boundaries and line layout are resolved from the selected mushaf.
+            displayName: Optional mushaf id. When provided, page boundaries and line layout are resolved from the selected mushaf.
           words:
             type:
               - string
